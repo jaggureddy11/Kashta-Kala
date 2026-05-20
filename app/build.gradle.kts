@@ -37,9 +37,15 @@ android {
         buildConfig = true
     }
 
-    val geminiApiKey = providers.gradleProperty("GEMINI_API_KEY").orElse("")
+    val localProperties = java.util.Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(localPropertiesFile.inputStream())
+    }
+    val geminiApiKey = localProperties.getProperty("GEMINI_API_KEY") ?: System.getenv("GEMINI_API_KEY") ?: ""
+
     defaultConfig {
-        buildConfigField("String", "GEMINI_API_KEY", "\"${geminiApiKey.get()}\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 }
 
