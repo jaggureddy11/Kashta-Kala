@@ -6,14 +6,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.RequestQuote
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -32,6 +34,10 @@ import com.example.kashtakala.ui.splash.SplashScreen
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.collectAsState
 import com.example.kashtakala.util.TranslationHelper
 
@@ -55,11 +61,11 @@ class MainActivity : ComponentActivity() {
                 val currentLang by sharedViewModel.selectedLanguage.collectAsState()
                 
                 val items = listOf(
-                    Triple(Screen.Catalog,   Icons.Filled.Home,  "Catalog"),
-                    Triple(Screen.Estimator, Icons.Filled.Settings, "Estimator"),
-                    Triple(Screen.Quote,     Icons.Filled.Info,  "Quotes"),
-                    Triple(Screen.Portfolio, Icons.Filled.AccountBox,"Portfolio"),
-                    Triple(Screen.Ai,        Icons.Filled.Info,  "AI"),
+                    Triple(Screen.Catalog,   Icons.Filled.Home,         "Catalog"),
+                    Triple(Screen.Estimator, Icons.Filled.Calculate,    "Estimator"),
+                    Triple(Screen.Quote,     Icons.Filled.RequestQuote, "Quotes"),
+                    Triple(Screen.Portfolio, Icons.Filled.PhotoLibrary, "Portfolio"),
+                    Triple(Screen.Ai,        Icons.Filled.AutoAwesome,  "AI"),
                 )
 
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -70,6 +76,7 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         if (showBottomBar) {
                             NavigationBar(
+                                modifier = Modifier.clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
                                 containerColor = Color(0xFF4A2C0A)
                             ) {
                                 items.forEach { (screen, icon, label) ->
@@ -112,7 +119,11 @@ class MainActivity : ComponentActivity() {
                     NavHost(
                         navController = navController,
                         startDestination = Screen.Splash.route,
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
+                        enterTransition = { slideInHorizontally(initialOffsetX = { 300 }, animationSpec = tween(400)) + fadeIn(animationSpec = tween(400)) },
+                        exitTransition = { slideOutHorizontally(targetOffsetX = { -300 }, animationSpec = tween(400)) + fadeOut(animationSpec = tween(400)) },
+                        popEnterTransition = { slideInHorizontally(initialOffsetX = { -300 }, animationSpec = tween(400)) + fadeIn(animationSpec = tween(400)) },
+                        popExitTransition = { slideOutHorizontally(targetOffsetX = { 300 }, animationSpec = tween(400)) + fadeOut(animationSpec = tween(400)) }
                     ) {
                         composable(
                             route = Screen.Splash.route,
