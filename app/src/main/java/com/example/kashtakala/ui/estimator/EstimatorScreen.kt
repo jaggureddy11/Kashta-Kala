@@ -194,6 +194,7 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                                 focusedLabelColor = Amber,
                                 unfocusedLabelColor = WoodMedium,
                                 focusedTextColor = WoodDark,
+                                unfocusedTextColor = WoodDark,
                                 focusedContainerColor = Cream.copy(alpha = 0.3f),
                                 unfocusedContainerColor = Cream.copy(alpha = 0.3f)
                             )
@@ -427,6 +428,7 @@ fun DimensionField(
                 focusedLabelColor = Amber,
                 unfocusedLabelColor = WoodMedium,
                 focusedTextColor = WoodDark,
+                unfocusedTextColor = WoodDark,
                 focusedContainerColor = Cream.copy(alpha = 0.3f),
                 unfocusedContainerColor = Cream.copy(alpha = 0.3f)
             )

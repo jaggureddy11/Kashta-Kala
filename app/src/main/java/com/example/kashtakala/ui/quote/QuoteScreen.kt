@@ -762,7 +762,8 @@ fun QuoteField(
             unfocusedLabelColor = WoodMedium,
             focusedTextColor = WoodDark,
             unfocusedTextColor = WoodDark,
-            containerColor = Cream.copy(alpha = 0.3f)
+            focusedContainerColor = Cream.copy(alpha = 0.3f),
+            unfocusedContainerColor = Cream.copy(alpha = 0.3f)
         )
     )
 }
