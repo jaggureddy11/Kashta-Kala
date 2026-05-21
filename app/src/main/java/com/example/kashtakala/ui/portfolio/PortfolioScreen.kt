@@ -14,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -91,11 +93,15 @@ fun PortfolioScreen(sharedViewModel: SharedViewModel) {
                     onValueChange = { captionInput = it },
                     label = { Text(TranslationHelper.getString("portfolio_dialog_label", currentLang)) },
                     singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = WoodMedium,
-                        unfocusedBorderColor = WoodLight,
+                        focusedBorderColor = Amber,
+                        unfocusedBorderColor = WoodLight.copy(alpha = 0.5f),
+                        focusedLabelColor = Amber,
+                        unfocusedLabelColor = WoodMedium,
                         focusedTextColor = WoodDark,
-                        unfocusedTextColor = WoodDark
+                        unfocusedTextColor = WoodDark,
+                        containerColor = Cream.copy(alpha = 0.3f)
                     )
                 )
             },
@@ -123,11 +129,13 @@ fun PortfolioScreen(sharedViewModel: SharedViewModel) {
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = WoodDark)
+                    colors = ButtonDefaults.buttonColors(containerColor = WoodDark),
+                    shape = RoundedCornerShape(20.dp)
                 ) {
                     Text(
                         TranslationHelper.getString("portfolio_dialog_save", currentLang),
-                        color = Amber
+                        color = Amber,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             },
@@ -135,7 +143,8 @@ fun PortfolioScreen(sharedViewModel: SharedViewModel) {
                 TextButton(onClick = { showDialog = false; pendingUri = null }) {
                     Text(
                         TranslationHelper.getString("portfolio_dialog_cancel", currentLang),
-                        color = WoodMedium
+                        color = WoodMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -295,8 +304,10 @@ fun PortfolioCard(item: PortfolioItem, currentLang: Language, onDelete: () -> Un
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        elevation = CardDefaults.cardElevation(3.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+        border = BorderStroke(1.dp, WoodLight.copy(alpha = 0.2f))
     ) {
         Box {
             GlideImage(
@@ -306,11 +317,16 @@ fun PortfolioCard(item: PortfolioItem, currentLang: Language, onDelete: () -> Un
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp)
-                    .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             )
-            IconButton(
-                onClick = { showConfirm = true },
-                modifier = Modifier.align(Alignment.TopEnd)
+            Box(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(36.dp)
+                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(18.dp))
+                    .align(Alignment.TopEnd)
+                    .clickable { showConfirm = true },
+                contentAlignment = Alignment.Center
             ) {
                 val deleteDesc = when(currentLang) {
                     Language.KANNADA -> "ಅಳಿಸಿ"
@@ -318,16 +334,20 @@ fun PortfolioCard(item: PortfolioItem, currentLang: Language, onDelete: () -> Un
                     Language.HINDI -> "हटाएं"
                     else -> "Delete"
                 }
-                Icon(Icons.Filled.Delete, contentDescription = deleteDesc,
-                    tint = Color.White)
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = deleteDesc,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
         if (item.caption.isNotBlank()) {
             Text(
                 item.caption,
-                modifier = Modifier.padding(8.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                 fontSize = 12.sp, color = WoodDark,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Bold
             )
         }
     }

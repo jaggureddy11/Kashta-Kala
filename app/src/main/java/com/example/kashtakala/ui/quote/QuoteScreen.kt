@@ -8,7 +8,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -129,21 +136,25 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .background(Cream, RoundedCornerShape(12.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Button(
                     onClick = { showSaved = false },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (!showSaved) WoodDark else Color.White
+                        containerColor = if (!showSaved) WoodDark else Color.Transparent,
+                        contentColor = if (!showSaved) Amber else WoodMedium
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    elevation = if (!showSaved) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else null,
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
                         TranslationHelper.getString("quote_tab_new", currentLang),
-                        color = if (!showSaved) Amber else WoodMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
                     )
                 }
 
@@ -157,14 +168,16 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                     onClick = { showSaved = true },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (showSaved) WoodDark else Color.White
+                        containerColor = if (showSaved) WoodDark else Color.Transparent,
+                        contentColor = if (showSaved) Amber else WoodMedium
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    elevation = if (showSaved) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else null,
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
                         savedTabLabel,
-                        color = if (showSaved) Amber else WoodMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
                     )
                 }
             }
@@ -215,32 +228,37 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                             fontSize = 12.sp, color = WoodMedium, fontWeight = FontWeight.SemiBold
                         )
                         Spacer(Modifier.height(6.dp))
-                        // Wood type chips
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            WoodCalculator.woodTypes.forEach { w ->
-                                val localizedWood = when(w.lowercase()) {
-                                    "teak" -> TranslationHelper.getString("wood_teak", currentLang)
-                                    "sheesham" -> TranslationHelper.getString("wood_sheesham", currentLang)
-                                    "plywood" -> TranslationHelper.getString("wood_plywood", currentLang)
-                                    "mdf" -> TranslationHelper.getString("wood_mdf", currentLang)
-                                    "rosewood" -> TranslationHelper.getString("wood_rosewood", currentLang)
-                                    "mango" -> TranslationHelper.getString("wood_mango", currentLang)
-                                    else -> w
+                        // Wood type chips (Grid style)
+                        val chunks = remember { WoodCalculator.woodTypes.chunked(3) }
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            chunks.forEach { row ->
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    row.forEach { w ->
+                                        val localizedWood = when(w.lowercase()) {
+                                            "teak" -> TranslationHelper.getString("wood_teak", currentLang)
+                                            "sheesham" -> TranslationHelper.getString("wood_sheesham", currentLang)
+                                            "plywood" -> TranslationHelper.getString("wood_plywood", currentLang)
+                                            "mdf" -> TranslationHelper.getString("wood_mdf", currentLang)
+                                            "rosewood" -> TranslationHelper.getString("wood_rosewood", currentLang)
+                                            "mango" -> TranslationHelper.getString("wood_mango", currentLang)
+                                            else -> w
+                                        }
+                                        PremiumWoodChip(
+                                            selected = woodType == w,
+                                            label = localizedWood,
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { woodType = w }
+                                        )
+                                    }
+                                    if (row.size < 3) {
+                                        repeat(3 - row.size) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
                                 }
-                                FilterChip(
-                                    selected = woodType == w,
-                                    onClick = { woodType = w },
-                                    label = { Text(localizedWood, fontSize = 11.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = WoodDark,
-                                        selectedLabelColor = Amber,
-                                        containerColor = Cream,
-                                        labelColor = WoodDark
-                                    )
-                                )
                             }
                         }
                     }
@@ -308,15 +326,26 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                             },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(52.dp),
+                                .height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = WoodMedium),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(25.dp)
                         ) {
-                            Text(
-                                TranslationHelper.getString("quote_btn_share", currentLang),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold, color = Color.White
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    TranslationHelper.getString("quote_btn_share", currentLang),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold, color = Color.White
+                                )
+                            }
                         }
 
                         Button(
@@ -357,15 +386,26 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                             },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(52.dp),
+                                .height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = WoodDark),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(25.dp)
                         ) {
-                            Text(
-                                TranslationHelper.getString("quote_btn_save", currentLang),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold, color = Amber
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Done,
+                                    contentDescription = null,
+                                    tint = Amber,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    TranslationHelper.getString("quote_btn_save", currentLang),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold, color = Amber
+                                )
+                            }
                         }
                     }
 
@@ -645,17 +685,57 @@ fun formatSavedQuoteForSharing(quote: SavedQuote, lang: Language): String {
 }
 
 @Composable
+fun PremiumWoodChip(selected: Boolean, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        modifier = modifier
+            .border(
+                width = 1.dp,
+                color = if (selected) Amber else WoodLight.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(10.dp)
+            )
+            .background(
+                color = if (selected) WoodDark else Color.White,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            color = if (selected) Amber else WoodDark,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+        )
+    }
+}
+
+@Composable
 fun QuoteCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp),
-        shape = RoundedCornerShape(12.dp)
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, WoodLight.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, fontWeight = FontWeight.Bold,
-                color = WoodDark, fontSize = 14.sp)
-            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .height(16.dp)
+                        .background(Amber, RoundedCornerShape(2.dp))
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    title,
+                    fontWeight = FontWeight.Bold,
+                    color = WoodDark,
+                    fontSize = 14.sp
+                )
+            }
+            Spacer(Modifier.height(12.dp))
             content()
         }
     }
@@ -672,13 +752,17 @@ fun QuoteField(
         value = value, onValueChange = onChange,
         label = { Text(label, fontSize = 12.sp) },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        singleLine = true, modifier = modifier.fillMaxWidth(),
+        singleLine = true,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = WoodMedium,
-            unfocusedBorderColor = WoodLight,
-            focusedLabelColor = WoodMedium,
+            focusedBorderColor = Amber,
+            unfocusedBorderColor = WoodLight.copy(alpha = 0.5f),
+            focusedLabelColor = Amber,
+            unfocusedLabelColor = WoodMedium,
             focusedTextColor = WoodDark,
-            unfocusedTextColor = WoodDark
+            unfocusedTextColor = WoodDark,
+            containerColor = Cream.copy(alpha = 0.3f)
         )
     )
 }
@@ -688,13 +772,30 @@ fun QuoteSummaryRow(label: String, value: String, bold: Boolean = false) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .then(
+                if (bold) {
+                    Modifier
+                        .background(Amber.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                } else {
+                    Modifier.padding(vertical = 4.dp)
+                }
+            ),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = WoodMedium, fontSize = 13.sp,
-            fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal)
-        Text(value, color = WoodDark, fontSize = 13.sp,
-            fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal)
+        Text(
+            label,
+            color = if (bold) WoodDark else WoodMedium,
+            fontSize = if (bold) 14.sp else 13.sp,
+            fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal
+        )
+        Text(
+            value,
+            color = if (bold) WoodDark else WoodDark,
+            fontSize = if (bold) 15.sp else 13.sp,
+            fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal
+        )
     }
 }
 
@@ -705,20 +806,31 @@ fun SavedQuoteCard(quote: SavedQuote, context: Context, currentLang: Language, o
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(3.dp),
-        shape = RoundedCornerShape(10.dp)
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, WoodLight.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(quote.customerName, fontWeight = FontWeight.Bold,
-                    color = WoodDark, fontSize = 15.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .height(16.dp)
+                            .background(Amber, RoundedCornerShape(2.dp))
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(quote.customerName, fontWeight = FontWeight.Bold,
+                        color = WoodDark, fontSize = 15.sp)
+                }
                 Text("₹%,.0f".format(quote.totalCost),
                     fontWeight = FontWeight.Bold, color = Amber, fontSize = 15.sp)
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
             val localizedWood = when(quote.woodType.lowercase()) {
                 "teak" -> TranslationHelper.getString("wood_teak", currentLang)
                 "sheesham" -> TranslationHelper.getString("wood_sheesham", currentLang)
@@ -729,7 +841,7 @@ fun SavedQuoteCard(quote: SavedQuote, context: Context, currentLang: Language, o
                 else -> quote.woodType
             }
             Text("${quote.designName} · $localizedWood",
-                color = WoodMedium, fontSize = 12.sp)
+                color = WoodMedium, fontSize = 13.sp, modifier = Modifier.padding(start = 12.dp))
             val ftUnit = when(currentLang) {
                 Language.KANNADA -> "ಅಡಿ"
                 Language.TELUGU -> "అడుగులు"
@@ -737,14 +849,15 @@ fun SavedQuoteCard(quote: SavedQuote, context: Context, currentLang: Language, o
                 else -> "ft"
             }
             Text("${quote.lengthFt}×${quote.widthFt}×${quote.heightFt} $ftUnit · $date",
-                color = WoodLight, fontSize = 11.sp)
+                color = WoodLight, fontSize = 12.sp, modifier = Modifier.padding(start = 12.dp))
             Spacer(Modifier.height(8.dp))
             
             HorizontalDivider(color = Cream, modifier = Modifier.padding(vertical = 4.dp))
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 val shareLabel = when(currentLang) {
                     Language.KANNADA -> "ಕೋಟ್ ಹಂಚಿಕೊಳ್ಳಿ"
@@ -768,7 +881,13 @@ fun SavedQuoteCard(quote: SavedQuote, context: Context, currentLang: Language, o
                         contentColor = WoodMedium
                     )
                 ) {
-                    Text(shareLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Text(shareLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 TextButton(
@@ -777,7 +896,13 @@ fun SavedQuoteCard(quote: SavedQuote, context: Context, currentLang: Language, o
                         contentColor = Color.Red
                     )
                 ) {
-                    Text(deleteLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Text(deleteLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

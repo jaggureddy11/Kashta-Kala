@@ -125,10 +125,10 @@ fun CatalogScreen(
                         focusedContainerColor = Color.White,
                         unfocusedContainerColor = Color.White,
                         focusedBorderColor = Amber,
-                        unfocusedBorderColor = WoodMedium,
+                        unfocusedBorderColor = WoodLight.copy(alpha = 0.5f),
                         focusedTextColor = WoodDark,
                         unfocusedTextColor = WoodDark,
-                        cursorColor = WoodMedium
+                        cursorColor = Amber
                     ),
                     leadingIcon = {
                         Icon(
@@ -187,7 +187,7 @@ fun CatalogScreen(
                         .background(if (isSelected) WoodDark else Color.White)
                         .border(
                             width = 1.dp,
-                            color = if (isSelected) WoodDark else WoodLight,
+                            color = if (isSelected) WoodDark else WoodLight.copy(alpha = 0.4f),
                             shape = RoundedCornerShape(20.dp)
                         )
                         .clickable { selectedCategory = cat }
@@ -342,8 +342,8 @@ fun CatalogScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(3.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     if (design.imageRes != 0) {
                         GlideImage(
@@ -405,8 +405,8 @@ fun CatalogScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, WoodLight)
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, WoodLight.copy(alpha = 0.2f))
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         val dimensionsTitle = when(currentLang) {
@@ -479,8 +479,8 @@ fun CatalogScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                     colors = CardDefaults.cardColors(containerColor = Cream.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, WoodLight.copy(alpha = 0.5f))
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, WoodLight.copy(alpha = 0.3f))
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
@@ -516,7 +516,7 @@ fun CatalogScreen(
                             .weight(1f)
                             .height(48.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = WoodMedium),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(24.dp)
                     ) {
                         Text(TranslationHelper.getString("catalog_btn_estimate", currentLang), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
@@ -531,7 +531,7 @@ fun CatalogScreen(
                             .weight(1f)
                             .height(48.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = WoodDark),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(24.dp)
                     ) {
                         Text(TranslationHelper.getString("catalog_btn_quote", currentLang), color = Amber, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
@@ -554,10 +554,11 @@ fun DesignCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
             .clickable { onCardClick() },
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(2.dp),
+        border = BorderStroke(1.dp, WoodLight.copy(alpha = 0.2f))
     ) {
         Column {
             // Image Box
@@ -571,13 +572,16 @@ fun DesignCard(
                         model = design.imageRes,
                         contentDescription = TranslationHelper.getDesignName(design.id, currentLang),
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                     )
                 } else {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(WoodMedium),
+                            .background(WoodMedium)
+                            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         val categoryLabel = when(design.category) {
@@ -602,16 +606,21 @@ fun DesignCard(
                             fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     }
                 }
-                // Favourite Button
-                IconButton(
-                    onClick = onFavouriteClick,
-                    modifier = Modifier.align(Alignment.TopEnd)
+                // Favourite Button in semi-transparent circle
+                Box(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(32.dp)
+                        .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                        .align(Alignment.TopEnd)
+                        .clickable { onFavouriteClick() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (isFavourite) Icons.Filled.Favorite
-                        else Icons.Filled.FavoriteBorder,
+                        imageVector = if (isFavourite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = "Favourite",
-                        tint = if (isFavourite) Color.Red else Color.White
+                        tint = if (isFavourite) Color.Red else Color.White,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -645,9 +654,9 @@ fun DesignCard(
                 Spacer(modifier = Modifier.height(5.dp))
                 Box(
                     modifier = Modifier
-                        .background(color = Cream, shape = RoundedCornerShape(4.dp))
-                        .border(1.dp, WoodLight, RoundedCornerShape(4.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .background(color = Cream, shape = RoundedCornerShape(6.dp))
+                        .border(1.dp, WoodLight.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     val ftUnit = when(currentLang) {
                         Language.KANNADA -> "ಅಡಿ"

@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -106,14 +107,24 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(4.dp),
-                shape = RoundedCornerShape(12.dp)
+                elevation = CardDefaults.cardElevation(2.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, WoodLight.copy(alpha = 0.2f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        TranslationHelper.getString("estimator_dimensions_title", currentLang),
-                        fontWeight = FontWeight.Bold, color = WoodDark, fontSize = 14.sp
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .height(16.dp)
+                                .background(Amber, RoundedCornerShape(2.dp))
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            TranslationHelper.getString("estimator_dimensions_title", currentLang),
+                            fontWeight = FontWeight.Bold, color = WoodDark, fontSize = 14.sp
+                        )
+                    }
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -136,15 +147,25 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(4.dp),
-                shape = RoundedCornerShape(12.dp)
+                elevation = CardDefaults.cardElevation(2.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, WoodLight.copy(alpha = 0.2f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        TranslationHelper.getString("estimator_wood_type", currentLang),
-                        fontWeight = FontWeight.Bold, color = WoodDark, fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .height(16.dp)
+                                .background(Amber, RoundedCornerShape(2.dp))
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            TranslationHelper.getString("estimator_wood_type", currentLang),
+                            fontWeight = FontWeight.Bold, color = WoodDark, fontSize = 14.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
                     ExposedDropdownMenuBox(
                         expanded = expanded,
                         onExpandedChange = { expanded = !expanded }
@@ -166,11 +187,15 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                             modifier = Modifier
                                 .menuAnchor()
                                 .fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = WoodMedium,
-                                unfocusedBorderColor = WoodLight,
+                                focusedBorderColor = Amber,
+                                unfocusedBorderColor = WoodLight.copy(alpha = 0.5f),
+                                focusedLabelColor = Amber,
+                                unfocusedLabelColor = WoodMedium,
                                 focusedTextColor = WoodDark,
-                                unfocusedTextColor = WoodDark
+                                focusedContainerColor = Cream.copy(alpha = 0.3f),
+                                unfocusedContainerColor = Cream.copy(alpha = 0.3f)
                             )
                         )
                         ExposedDropdownMenu(
@@ -260,7 +285,7 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                     .fillMaxWidth()
                     .height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = WoodDark),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(25.dp)
             ) {
                 Text(
                     TranslationHelper.getString("estimator_btn_calculate", currentLang),
@@ -297,15 +322,24 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = WoodDark),
-                    elevation = CardDefaults.cardElevation(6.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            TranslationHelper.getString("estimator_result_title", currentLang),
-                            color = Amber, fontWeight = FontWeight.Bold, fontSize = 18.sp
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .width(4.dp)
+                                    .height(18.dp)
+                                    .background(Amber, RoundedCornerShape(2.dp))
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                TranslationHelper.getString("estimator_result_title", currentLang),
+                                color = Amber, fontWeight = FontWeight.Bold, fontSize = 18.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                         ResultRow(TranslationHelper.getString("estimator_result_wood", currentLang), localizedResultWood)
                         ResultRow(TranslationHelper.getString("estimator_result_area", currentLang), "%.2f $sqftUnit".format(r.areaSqFt))
                         ResultRow(TranslationHelper.getString("estimator_result_volume", currentLang), "%.2f $cuftUnit".format(r.volumeCuFt))
@@ -315,15 +349,19 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                .padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                TranslationHelper.getString("estimator_result_tip_label", currentLang),
+                                TranslationHelper.getString("estimator_result_tip_label", currentLang) + " ",
                                 color = Amber,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
+                            Spacer(Modifier.width(4.dp))
                             Text(
                                 TranslationHelper.getString("estimator_result_tip_text", currentLang),
                                 color = Cream,
@@ -382,12 +420,15 @@ fun DimensionField(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = WoodMedium,
-                unfocusedBorderColor = WoodLight,
-                focusedLabelColor = WoodMedium,
+                focusedBorderColor = Amber,
+                unfocusedBorderColor = WoodLight.copy(alpha = 0.5f),
+                focusedLabelColor = Amber,
+                unfocusedLabelColor = WoodMedium,
                 focusedTextColor = WoodDark,
-                unfocusedTextColor = WoodDark
+                focusedContainerColor = Cream.copy(alpha = 0.3f),
+                unfocusedContainerColor = Cream.copy(alpha = 0.3f)
             )
         )
         if (ftInText.isNotEmpty()) {
