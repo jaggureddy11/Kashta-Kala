@@ -21,6 +21,9 @@ import com.example.kashtakala.ui.catalog.WoodDark
 import com.example.kashtakala.ui.catalog.WoodLight
 import com.example.kashtakala.ui.catalog.WoodMedium
 import com.example.kashtakala.ui.SharedViewModel
+import com.example.kashtakala.ui.common.LanguageSelector
+import com.example.kashtakala.util.Language
+import com.example.kashtakala.util.TranslationHelper
 import com.example.kashtakala.util.WoodCalculator
 
 data class EstimatorResult(
@@ -34,6 +37,7 @@ data class EstimatorResult(
 @Composable
 fun EstimatorScreen(sharedViewModel: SharedViewModel) {
     val sharedDesign by sharedViewModel.selectedDesignForEstimation.collectAsState()
+    val currentLang by sharedViewModel.selectedLanguage.collectAsState()
 
     var length       by remember { mutableStateOf("") }
     var width        by remember { mutableStateOf("") }
@@ -77,15 +81,22 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                 .background(WoodDark)
                 .padding(16.dp)
         ) {
-            Column {
-                Text(
-                    "📐 Material Estimator",
-                    color = Amber, fontSize = 22.sp, fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Calculate wood required & cost",
-                    color = WoodLight, fontSize = 13.sp
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        TranslationHelper.getString("estimator_title", currentLang),
+                        color = Amber, fontSize = 22.sp, fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        TranslationHelper.getString("estimator_subtitle", currentLang),
+                        color = WoodLight, fontSize = 13.sp
+                    )
+                }
+                LanguageSelector(sharedViewModel = sharedViewModel)
             }
         }
 
@@ -100,7 +111,7 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "Furniture Dimensions (in feet)",
+                        TranslationHelper.getString("estimator_dimensions_title", currentLang),
                         fontWeight = FontWeight.Bold, color = WoodDark, fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -108,9 +119,13 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        DimensionField("Length", length, Modifier.weight(1f)) { length = it }
-                        DimensionField("Width",  width,  Modifier.weight(1f)) { width  = it }
-                        DimensionField("Height", height, Modifier.weight(1f)) { height = it }
+                        val lengthLabel = TranslationHelper.getString("estimator_label_length", currentLang)
+                        val widthLabel = TranslationHelper.getString("estimator_label_width", currentLang)
+                        val heightLabel = TranslationHelper.getString("estimator_label_height", currentLang)
+
+                        DimensionField(lengthLabel, length, currentLang, Modifier.weight(1f)) { length = it }
+                        DimensionField(widthLabel,  width,  currentLang, Modifier.weight(1f)) { width  = it }
+                        DimensionField(heightLabel, height, currentLang, Modifier.weight(1f)) { height = it }
                     }
                 }
             }
@@ -126,7 +141,7 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "Wood Type",
+                        TranslationHelper.getString("estimator_wood_type", currentLang),
                         fontWeight = FontWeight.Bold, color = WoodDark, fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -134,8 +149,17 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                         expanded = expanded,
                         onExpandedChange = { expanded = !expanded }
                     ) {
+                        val localizedSelectedWood = when(selectedWood.lowercase()) {
+                            "teak" -> TranslationHelper.getString("wood_teak", currentLang)
+                            "sheesham" -> TranslationHelper.getString("wood_sheesham", currentLang)
+                            "plywood" -> TranslationHelper.getString("wood_plywood", currentLang)
+                            "mdf" -> TranslationHelper.getString("wood_mdf", currentLang)
+                            "rosewood" -> TranslationHelper.getString("wood_rosewood", currentLang)
+                            "mango" -> TranslationHelper.getString("wood_mango", currentLang)
+                            else -> selectedWood
+                        }
                         OutlinedTextField(
-                            value = selectedWood,
+                            value = localizedSelectedWood,
                             onValueChange = {},
                             readOnly = true,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
@@ -145,8 +169,8 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = WoodMedium,
                                 unfocusedBorderColor = WoodLight,
-                                focusedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
-                                unfocusedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
+                                focusedTextColor = WoodDark,
+                                unfocusedTextColor = WoodDark
                             )
                         )
                         ExposedDropdownMenu(
@@ -154,12 +178,27 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                             onDismissRequest = { expanded = false }
                         ) {
                             WoodCalculator.woodTypes.forEach { wood ->
+                                val localizedWoodName = when(wood.lowercase()) {
+                                    "teak" -> TranslationHelper.getString("wood_teak", currentLang)
+                                    "sheesham" -> TranslationHelper.getString("wood_sheesham", currentLang)
+                                    "plywood" -> TranslationHelper.getString("wood_plywood", currentLang)
+                                    "mdf" -> TranslationHelper.getString("wood_mdf", currentLang)
+                                    "rosewood" -> TranslationHelper.getString("wood_rosewood", currentLang)
+                                    "mango" -> TranslationHelper.getString("wood_mango", currentLang)
+                                    else -> wood
+                                }
+                                val perSqFtText = when(currentLang) {
+                                    Language.KANNADA -> "ಚದರ ಅಡಿಗೆ"
+                                    Language.TELUGU -> "చదరపు అడుగుకి"
+                                    Language.HINDI -> "प्रति वर्ग फिट"
+                                    else -> "sq.ft"
+                                }
                                 DropdownMenuItem(
                                     text = {
                                         Column {
-                                            Text(wood, fontWeight = FontWeight.Medium)
+                                            Text(localizedWoodName, fontWeight = FontWeight.Medium)
                                             Text(
-                                                "₹${WoodCalculator.woodCostPerSqFt[wood]?.toInt()}/sq.ft",
+                                                "₹${WoodCalculator.woodCostPerSqFt[wood]?.toInt()}/$perSqFtText",
                                                 fontSize = 11.sp, color = WoodMedium
                                             )
                                         }
@@ -174,8 +213,29 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Error message
-            errorMsg?.let {
+            // Localized Error message
+            val localizedError = when(errorMsg) {
+                "Length must be a valid positive number" -> when(currentLang) {
+                    Language.KANNADA -> "ಉದ್ದವು ಮಾನ್ಯವಾದ ಸಕಾರಾತ್ಮಕ ಸಂಖ್ಯೆಯಾಗಿರಬೇಕು"
+                    Language.TELUGU -> "పొడవు సరైన ధన సంఖ్య అయి ఉండాలి"
+                    Language.HINDI -> "लंबाई एक मान्य धनात्मक संख्या होनी चाहिए"
+                    else -> errorMsg
+                }
+                "Width must be a valid positive number" -> when(currentLang) {
+                    Language.KANNADA -> "ಅಗಲವು ಮಾನ್ಯವಾದ ಸಕಾರಾತ್ಮಕ ಸಂಖ್ಯೆಯಾಗಿರಬೇಕು"
+                    Language.TELUGU -> "వెడల్పు సరైన ధన సంఖ్య అయి ఉండాలి"
+                    Language.HINDI -> "चौड़ाई एक मान्य धनात्मक संख्या होनी चाहिए"
+                    else -> errorMsg
+                }
+                "Height must be a valid positive number" -> when(currentLang) {
+                    Language.KANNADA -> "ಎತ್ತರವು ಮಾನ್ಯವಾದ ಸಕಾರಾತ್ಮಕ ಸಂಖ್ಯೆಯಾಗಿರಬೇಕು"
+                    Language.TELUGU -> "ఎత్తు సరైన ధన సంఖ్య అయి ఉండాలి"
+                    Language.HINDI -> "ऊंचाई एक मान्य धनात्मक संख्या होनी चाहिए"
+                    else -> errorMsg
+                }
+                else -> errorMsg
+            }
+            localizedError?.let {
                 Text(it, color = Color.Red, fontSize = 12.sp,
                     modifier = Modifier.padding(4.dp))
             }
@@ -202,12 +262,37 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                 colors = ButtonDefaults.buttonColors(containerColor = WoodDark),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("Calculate", fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold, color = Amber)
+                Text(
+                    TranslationHelper.getString("estimator_btn_calculate", currentLang),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold, color = Amber
+                )
             }
 
             // Result card
             result?.let { r ->
+                val localizedResultWood = when(r.woodType.lowercase()) {
+                    "teak" -> TranslationHelper.getString("wood_teak", currentLang)
+                    "sheesham" -> TranslationHelper.getString("wood_sheesham", currentLang)
+                    "plywood" -> TranslationHelper.getString("wood_plywood", currentLang)
+                    "mdf" -> TranslationHelper.getString("wood_mdf", currentLang)
+                    "rosewood" -> TranslationHelper.getString("wood_rosewood", currentLang)
+                    "mango" -> TranslationHelper.getString("wood_mango", currentLang)
+                    else -> r.woodType
+                }
+                val sqftUnit = when(currentLang) {
+                    Language.KANNADA -> "ಚದರ ಅಡಿ"
+                    Language.TELUGU -> "చదరపు అడుగులు"
+                    Language.HINDI -> "वर्ग फिट"
+                    else -> "sq.ft"
+                }
+                val cuftUnit = when(currentLang) {
+                    Language.KANNADA -> "ಘನ ಅಡಿ"
+                    Language.TELUGU -> "ఘనపు అడుగులు"
+                    Language.HINDI -> "घन फिट"
+                    else -> "cu.ft"
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -217,14 +302,14 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "📊 Estimation Summary",
+                            TranslationHelper.getString("estimator_result_title", currentLang),
                             color = Amber, fontWeight = FontWeight.Bold, fontSize = 18.sp
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        ResultRow("Wood Type Selected",     r.woodType)
-                        ResultRow("Total Area",          "%.2f sq.ft".format(r.areaSqFt))
-                        ResultRow("Total Volume",        "%.2f cu.ft".format(r.volumeCuFt))
-                        ResultRow("Material Cost (Est.)", "₹%,.0f".format(r.materialCost))
+                        ResultRow(TranslationHelper.getString("estimator_result_wood", currentLang), localizedResultWood)
+                        ResultRow(TranslationHelper.getString("estimator_result_area", currentLang), "%.2f $sqftUnit".format(r.areaSqFt))
+                        ResultRow(TranslationHelper.getString("estimator_result_volume", currentLang), "%.2f $cuftUnit".format(r.volumeCuFt))
+                        ResultRow(TranslationHelper.getString("estimator_result_cost", currentLang), "₹%,.0f".format(r.materialCost))
                         HorizontalDivider(
                             color = WoodLight,
                             modifier = Modifier.padding(vertical = 8.dp)
@@ -234,13 +319,13 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "💡 Tip: ",
+                                TranslationHelper.getString("estimator_result_tip_label", currentLang),
                                 color = Amber,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "You can generate a full quotation including labor cost in the Quotes tab.",
+                                TranslationHelper.getString("estimator_result_tip_text", currentLang),
                                 color = Cream,
                                 fontSize = 12.sp,
                                 lineHeight = 16.sp,
@@ -254,17 +339,29 @@ fun EstimatorScreen(sharedViewModel: SharedViewModel) {
     }
 }
 
-fun formatToFtIn(value: String): String {
+fun formatToFtIn(value: String, lang: Language): String {
     val floatVal = value.toFloatOrNull() ?: return ""
     if (floatVal <= 0f) return ""
     val feet = floatVal.toInt()
     val inches = Math.round((floatVal - feet) * 12)
+    val ftUnit = when(lang) {
+        Language.KANNADA -> "ಅಡಿ"
+        Language.TELUGU -> "అడుగులు"
+        Language.HINDI -> "फिट"
+        else -> "ft"
+    }
+    val inUnit = when(lang) {
+        Language.KANNADA -> "ಇಂಚು"
+        Language.TELUGU -> "అంగుళాలు"
+        Language.HINDI -> "इंच"
+        else -> "in"
+    }
     return if (inches == 0) {
-        "$feet ft"
+        "$feet $ftUnit"
     } else if (feet == 0) {
-        "$inches in"
+        "$inches $inUnit"
     } else {
-        "$feet ft $inches in"
+        "$feet $ftUnit $inches $inUnit"
     }
 }
 
@@ -272,10 +369,11 @@ fun formatToFtIn(value: String): String {
 fun DimensionField(
     label: String,
     value: String,
+    lang: Language,
     modifier: Modifier,
     onChange: (String) -> Unit
 ) {
-    val ftInText = remember(value) { formatToFtIn(value) }
+    val ftInText = remember(value) { formatToFtIn(value, lang) }
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value,
@@ -288,8 +386,8 @@ fun DimensionField(
                 focusedBorderColor = WoodMedium,
                 unfocusedBorderColor = WoodLight,
                 focusedLabelColor = WoodMedium,
-                focusedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
+                focusedTextColor = WoodDark,
+                unfocusedTextColor = WoodDark
             )
         )
         if (ftInText.isNotEmpty()) {

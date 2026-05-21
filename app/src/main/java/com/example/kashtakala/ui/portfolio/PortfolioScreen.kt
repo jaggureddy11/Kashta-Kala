@@ -35,20 +35,24 @@ import com.example.kashtakala.ui.catalog.Cream
 import com.example.kashtakala.ui.catalog.WoodDark
 import com.example.kashtakala.ui.catalog.WoodLight
 import com.example.kashtakala.ui.catalog.WoodMedium
-import kotlinx.coroutines.flow.first
+import com.example.kashtakala.ui.SharedViewModel
+import com.example.kashtakala.ui.common.LanguageSelector
+import com.example.kashtakala.util.Language
+import com.example.kashtakala.util.TranslationHelper
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun PortfolioScreen() {
+fun PortfolioScreen(sharedViewModel: SharedViewModel) {
     val context = LocalContext.current
     val scope   = rememberCoroutineScope()
     val db      = remember { AppDatabase.getDatabase(context) }
     val repo    = remember { PortfolioRepository(db.portfolioDao()) }
 
     val items       by repo.allItems.collectAsState(initial = emptyList())
+    val currentLang by sharedViewModel.selectedLanguage.collectAsState()
     var captionInput by remember { mutableStateOf("") }
     var pendingUri  by remember { mutableStateOf<Uri?>(null) }
     var showDialog  by remember { mutableStateOf(false) }
@@ -64,22 +68,34 @@ fun PortfolioScreen() {
         }
     }
 
+    val addedToast = when(currentLang) {
+        Language.KANNADA -> "ಪೋರ್ಟ್‌ಫೋಲಿಯೋಗೆ ಫೋಟೋ ಸೇರಿಸಲಾಗಿದೆ!"
+        Language.TELUGU -> "పోర్ట్‌ఫోలియోకి ఫోటో జోడించబడింది!"
+        Language.HINDI -> "पोर्टफोलियो में फोटो जोड़ा गया!"
+        else -> "Photo added to portfolio!"
+    }
+
     // Caption dialog
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false; pendingUri = null },
-            title = { Text("Add Caption", color = WoodDark, fontWeight = FontWeight.Bold) },
+            title = {
+                Text(
+                    TranslationHelper.getString("portfolio_dialog_title", currentLang),
+                    color = WoodDark, fontWeight = FontWeight.Bold
+                )
+            },
             text = {
                 OutlinedTextField(
                     value = captionInput,
                     onValueChange = { captionInput = it },
-                    label = { Text("Caption (optional)") },
+                    label = { Text(TranslationHelper.getString("portfolio_dialog_label", currentLang)) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = WoodMedium,
                         unfocusedBorderColor = WoodLight,
-                        focusedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
+                        focusedTextColor = WoodDark,
+                        unfocusedTextColor = WoodDark
                     )
                 )
             },
@@ -103,19 +119,34 @@ fun PortfolioScreen() {
                                 captionInput = ""
                                 pendingUri   = null
                                 showDialog   = false
-                                snackState.showSnackbar("Photo added to portfolio!")
+                                snackState.showSnackbar(addedToast)
                             }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = WoodDark)
-                ) { Text("Save", color = Amber) }
+                ) {
+                    Text(
+                        TranslationHelper.getString("portfolio_dialog_save", currentLang),
+                        color = Amber
+                    )
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false; pendingUri = null }) {
-                    Text("Cancel", color = WoodMedium)
+                    Text(
+                        TranslationHelper.getString("portfolio_dialog_cancel", currentLang),
+                        color = WoodMedium
+                    )
                 }
             }
         )
+    }
+
+    val addPhotoDesc = when(currentLang) {
+        Language.KANNADA -> "ಫೋಟೋ ಸೇರಿಸಿ"
+        Language.TELUGU -> "ఫోటో జోడించండి"
+        Language.HINDI -> "फोटो जोड़ें"
+        else -> "Add Photo"
     }
 
     Scaffold(
@@ -125,7 +156,7 @@ fun PortfolioScreen() {
                 onClick = { picker.launch("image/*") },
                 containerColor = WoodDark
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Photo", tint = Amber)
+                Icon(Icons.Filled.Add, contentDescription = addPhotoDesc, tint = Amber)
             }
         },
         containerColor = Cream
@@ -142,11 +173,34 @@ fun PortfolioScreen() {
                     .background(WoodDark)
                     .padding(16.dp)
             ) {
-                Column {
-                    Text("📸 My Portfolio", color = Amber,
-                        fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Text("${items.size} photos · Tap + to add",
-                        color = WoodLight, fontSize = 13.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            TranslationHelper.getString("portfolio_title", currentLang),
+                            color = Amber, fontSize = 22.sp, fontWeight = FontWeight.Bold
+                        )
+                        val photoUnit = when(currentLang) {
+                            Language.KANNADA -> "ಫೋಟೋಗಳು"
+                            Language.TELUGU -> "ఫోటోలు"
+                            Language.HINDI -> "तस्वीरें"
+                            else -> "photos"
+                        }
+                        val tapToAdd = when(currentLang) {
+                            Language.KANNADA -> "ಸೇರಿಸಲು + ಒತ್ತಿರಿ"
+                            Language.TELUGU -> "జోడించడానికి + నొక్కండి"
+                            Language.HINDI -> "जोड़ने के लिए + दबाएं"
+                            else -> "Tap + to add"
+                        }
+                        Text(
+                            "${items.size} $photoUnit · $tapToAdd",
+                            color = WoodLight, fontSize = 13.sp
+                        )
+                    }
+                    LanguageSelector(sharedViewModel = sharedViewModel)
                 }
             }
 
@@ -159,13 +213,17 @@ fun PortfolioScreen() {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("📷", fontSize = 48.sp)
                         Spacer(Modifier.height(12.dp))
-                        Text("No photos yet",
+                        Text(
+                            TranslationHelper.getString("portfolio_empty_title", currentLang),
                             color = WoodMedium, fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium)
+                            fontWeight = FontWeight.Medium
+                        )
                         Spacer(Modifier.height(6.dp))
-                        Text("Tap the + button to add\nyour finished work",
+                        Text(
+                            TranslationHelper.getString("portfolio_empty_desc", currentLang),
                             color = WoodLight, fontSize = 13.sp,
-                            textAlign = TextAlign.Center)
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             } else {
@@ -179,6 +237,7 @@ fun PortfolioScreen() {
                     items(items) { item ->
                         PortfolioCard(
                             item = item,
+                            currentLang = currentLang,
                             onDelete = {
                                 scope.launch {
                                     repo.delete(item)
@@ -194,22 +253,41 @@ fun PortfolioScreen() {
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun PortfolioCard(item: PortfolioItem, onDelete: () -> Unit) {
+fun PortfolioCard(item: PortfolioItem, currentLang: Language, onDelete: () -> Unit) {
     var showConfirm by remember { mutableStateOf(false) }
 
     if (showConfirm) {
+        val deleteTitle = when(currentLang) {
+            Language.KANNADA -> "ಫೋಟೋ ಅಳಿಸಬೇಕೇ?"
+            Language.TELUGU -> "ఫోటోను తొలగించాలా?"
+            Language.HINDI -> "फोटो हटाएं?"
+            else -> "Delete Photo?"
+        }
+        val deleteLabel = when(currentLang) {
+            Language.KANNADA -> "ಅಳಿಸಿ"
+            Language.TELUGU -> "తొలగించు"
+            Language.HINDI -> "हटाएं"
+            else -> "Delete"
+        }
+        val cancelLabel = when(currentLang) {
+            Language.KANNADA -> "ರದ್ದುಮಾಡಿ"
+            Language.TELUGU -> "రద్దు చేయి"
+            Language.HINDI -> "रद्द करें"
+            else -> "Cancel"
+        }
+
         AlertDialog(
             onDismissRequest = { showConfirm = false },
-            title = { Text("Delete Photo?", color = WoodDark) },
+            title = { Text(deleteTitle, color = WoodDark) },
             confirmButton = {
                 Button(
                     onClick = { onDelete(); showConfirm = false },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                ) { Text("Delete", color = Color.White) }
+                ) { Text(deleteLabel, color = Color.White) }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirm = false }) {
-                    Text("Cancel", color = WoodMedium)
+                    Text(cancelLabel, color = WoodMedium)
                 }
             }
         )
@@ -234,7 +312,13 @@ fun PortfolioCard(item: PortfolioItem, onDelete: () -> Unit) {
                 onClick = { showConfirm = true },
                 modifier = Modifier.align(Alignment.TopEnd)
             ) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete",
+                val deleteDesc = when(currentLang) {
+                    Language.KANNADA -> "ಅಳಿಸಿ"
+                    Language.TELUGU -> "తొలగించు"
+                    Language.HINDI -> "हटाएं"
+                    else -> "Delete"
+                }
+                Icon(Icons.Filled.Delete, contentDescription = deleteDesc,
                     tint = Color.White)
             }
         }

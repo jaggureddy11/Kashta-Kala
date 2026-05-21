@@ -37,6 +37,9 @@ import com.example.kashtakala.data.model.FavouriteDesign
 import com.example.kashtakala.data.model.FurnitureDesign
 import com.example.kashtakala.data.repository.FavouriteRepository
 import com.example.kashtakala.ui.SharedViewModel
+import com.example.kashtakala.ui.common.LanguageSelector
+import com.example.kashtakala.util.Language
+import com.example.kashtakala.util.TranslationHelper
 import kotlinx.coroutines.launch
 
 val WoodDark   = Color(0xFF4A2C0A)
@@ -59,6 +62,7 @@ fun CatalogScreen(
     val allDesigns = remember { DesignDataSource.getAllDesigns() }
     val dbFavourites by repo.allFavourites.collectAsState(initial = emptyList())
     val favouriteIds = remember(dbFavourites) { dbFavourites.map { it.designId }.toSet() }
+    val currentLang by sharedViewModel.selectedLanguage.collectAsState()
 
     var selectedCategory by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
@@ -66,7 +70,7 @@ fun CatalogScreen(
 
     val filtered = allDesigns.filter { design ->
         val matchesCategory = selectedCategory == "All" || design.category == selectedCategory
-        val matchesSearch = design.name.contains(searchQuery, ignoreCase = true) ||
+        val matchesSearch = TranslationHelper.getDesignName(design.id, currentLang).contains(searchQuery, ignoreCase = true) ||
                 design.suggestedWood.contains(searchQuery, ignoreCase = true) ||
                 design.category.contains(searchQuery, ignoreCase = true)
         matchesCategory && matchesSearch
@@ -92,24 +96,25 @@ fun CatalogScreen(
                 ) {
                     Column {
                         Text(
-                            "🪑 Kashta-Kala",
+                            TranslationHelper.getString("catalog_title", currentLang),
                             color = Amber,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            "Digital Design Catalog",
+                            TranslationHelper.getString("catalog_subtitle", currentLang),
                             color = WoodLight,
                             fontSize = 13.sp
                         )
                     }
+                    LanguageSelector(sharedViewModel = sharedViewModel)
                 }
 
                 // Search Bar
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search furniture or wood...", color = WoodLight, fontSize = 13.sp) },
+                    placeholder = { Text(TranslationHelper.getString("catalog_search", currentLang), color = WoodLight, fontSize = 13.sp) },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -157,6 +162,25 @@ fun CatalogScreen(
         ) {
             lazyRowItems(DesignDataSource.categories) { cat ->
                 val isSelected = selectedCategory == cat
+                val localizedCat = when(cat) {
+                    "All" -> TranslationHelper.getString("catalog_filter_all", currentLang)
+                    "Bed" -> TranslationHelper.getString("catalog_filter_bed", currentLang)
+                    "Sofa" -> TranslationHelper.getString("catalog_filter_sofa", currentLang)
+                    "Cabinet" -> when(currentLang) {
+                        Language.KANNADA -> "ಕ್ಯಾಬಿನೆಟ್"
+                        Language.TELUGU -> "క్యాబినెట్"
+                        Language.HINDI -> "कैबिनेट"
+                        else -> "Cabinet"
+                    }
+                    "Wardrobe" -> TranslationHelper.getString("catalog_filter_wardrobe", currentLang)
+                    "Table" -> when(currentLang) {
+                        Language.KANNADA -> "ಮೇಜು"
+                        Language.TELUGU -> "బల్ల"
+                        Language.HINDI -> "मेज"
+                        else -> "Table"
+                    }
+                    else -> cat
+                }
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
@@ -170,7 +194,7 @@ fun CatalogScreen(
                         .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Text(
-                        text = cat,
+                        text = localizedCat,
                         color = if (isSelected) Amber else WoodMedium,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
@@ -180,8 +204,14 @@ fun CatalogScreen(
         }
 
         // Count Label
+        val countText = when(currentLang) {
+            Language.KANNADA -> "${filtered.size} ವಿನ್ಯಾಸಗಳು ಪತ್ತೆಯಾಗಿವೆ"
+            Language.TELUGU -> "${filtered.size} డిజైన్లు కనుగొనబడ్డాయి"
+            Language.HINDI -> "${filtered.size} डिजाइन मिले"
+            else -> "${filtered.size} designs found"
+        }
         Text(
-            "${filtered.size} designs found",
+            countText,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
             color = WoodMedium,
             fontSize = 12.sp,
@@ -200,13 +230,14 @@ fun CatalogScreen(
                 DesignCard(
                     design = design,
                     isFavourite = design.id in favouriteIds,
+                    currentLang = currentLang,
                     onFavouriteClick = {
                         scope.launch {
                             if (design.id in favouriteIds) {
                                 repo.remove(FavouriteDesign(design.id))
-                            } else {
+                              } else {
                                 repo.add(FavouriteDesign(design.id))
-                            }
+                              }
                         }
                     },
                     onCardClick = {
@@ -237,15 +268,49 @@ fun CatalogScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
+                    val localizedDesignName = TranslationHelper.getDesignName(design.id, currentLang)
+                    val localizedWoodName = when(design.suggestedWood.lowercase()) {
+                        "teak" -> TranslationHelper.getString("wood_teak", currentLang)
+                        "sheesham" -> TranslationHelper.getString("wood_sheesham", currentLang)
+                        "plywood" -> TranslationHelper.getString("wood_plywood", currentLang)
+                        "mdf" -> TranslationHelper.getString("wood_mdf", currentLang)
+                        "rosewood" -> TranslationHelper.getString("wood_rosewood", currentLang)
+                        "mango" -> TranslationHelper.getString("wood_mango", currentLang)
+                        else -> design.suggestedWood
+                    }
+                    val localizedCategory = when(design.category) {
+                        "Bed" -> TranslationHelper.getString("catalog_filter_bed", currentLang)
+                        "Sofa" -> TranslationHelper.getString("catalog_filter_sofa", currentLang)
+                        "Cabinet" -> when(currentLang) {
+                            Language.KANNADA -> "ಕ್ಯಾಬಿನೆಟ್"
+                            Language.TELUGU -> "క్యాబినెట్"
+                            Language.HINDI -> "कैबिनेट"
+                            else -> "Cabinet"
+                        }
+                        "Wardrobe" -> TranslationHelper.getString("catalog_filter_wardrobe", currentLang)
+                        "Table" -> when(currentLang) {
+                            Language.KANNADA -> "ಮೇಜು"
+                            Language.TELUGU -> "బల్ల"
+                            Language.HINDI -> "मेज"
+                            else -> "Table"
+                        }
+                        else -> design.category
+                    }
+                    val suggestedWoodText = when(currentLang) {
+                        Language.KANNADA -> "ಶಿಫಾರಸು ಮಾಡಿದ ಮರ: $localizedWoodName"
+                        Language.TELUGU -> "సిఫార్సు చేసిన కలప: $localizedWoodName"
+                        Language.HINDI -> "सुझाई गई लकड़ी: $localizedWoodName"
+                        else -> "Suggested wood: $localizedWoodName"
+                    }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = design.name,
+                            text = localizedDesignName,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             color = WoodDark
                         )
                         Text(
-                            text = "${design.category} · Suggested wood: ${design.suggestedWood}",
+                            text = "$localizedCategory · $suggestedWoodText",
                             fontSize = 14.sp,
                             color = WoodMedium,
                             fontWeight = FontWeight.SemiBold
@@ -294,7 +359,25 @@ fun CatalogScreen(
                                 .background(WoodMedium),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(design.category, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            val categoryLabel = when(design.category) {
+                                "Bed" -> TranslationHelper.getString("catalog_filter_bed", currentLang)
+                                "Sofa" -> TranslationHelper.getString("catalog_filter_sofa", currentLang)
+                                "Cabinet" -> when(currentLang) {
+                                    Language.KANNADA -> "ಕ್ಯಾಬಿನೆಟ್"
+                                    Language.TELUGU -> "క్యాబినెట్"
+                                    Language.HINDI -> "कैबिनेट"
+                                    else -> "Cabinet"
+                                }
+                                "Wardrobe" -> TranslationHelper.getString("catalog_filter_wardrobe", currentLang)
+                                "Table" -> when(currentLang) {
+                                    Language.KANNADA -> "ಮೇಜು"
+                                    Language.TELUGU -> "బల్ల"
+                                    Language.HINDI -> "मेज"
+                                    else -> "Table"
+                                }
+                                else -> design.category
+                            }
+                            Text(categoryLabel, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -303,14 +386,14 @@ fun CatalogScreen(
 
                 // Description
                 Text(
-                    text = "Description",
+                    text = TranslationHelper.getString("catalog_details_description", currentLang),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = WoodDark
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = design.description,
+                    text = TranslationHelper.getDesignDesc(design.id, currentLang),
                     fontSize = 13.sp,
                     color = WoodDark,
                     lineHeight = 18.sp
@@ -326,8 +409,50 @@ fun CatalogScreen(
                     border = BorderStroke(1.dp, WoodLight)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
+                        val dimensionsTitle = when(currentLang) {
+                            Language.KANNADA -> "ಪ್ರಮಾಣಿತ ಅಳತೆಗಳು"
+                            Language.TELUGU -> "ప్రామాణిక కొలతలు"
+                            Language.HINDI -> "मानक आकार"
+                            else -> "Standard Dimensions"
+                        }
+                        val lengthLabel = when(currentLang) {
+                            Language.KANNADA -> "ಉದ್ದ"
+                            Language.TELUGU -> "పొడవు"
+                            Language.HINDI -> "लंबाई"
+                            else -> "Length"
+                        }
+                        val widthLabel = when(currentLang) {
+                            Language.KANNADA -> "ಅಗಲ"
+                            Language.TELUGU -> "వెడల్పు"
+                            Language.HINDI -> "चौड़ाई"
+                            else -> "Width"
+                        }
+                        val heightLabel = when(currentLang) {
+                            Language.KANNADA -> "ಎತ್ತರ"
+                            Language.TELUGU -> "ఎత్తు"
+                            Language.HINDI -> "ऊंचाई"
+                            else -> "Height"
+                        }
+                        val areaLabel = when(currentLang) {
+                            Language.KANNADA -> "ಅಗತ್ಯವಿರುವ ವಿಸ್ತೀರ್ಣ"
+                            Language.TELUGU -> "అవసరమైన వైశాల్యం"
+                            Language.HINDI -> "आवश्यक क्षेत्रफल"
+                            else -> "Required Area"
+                        }
+                        val ftUnit = when(currentLang) {
+                            Language.KANNADA -> "ಅಡಿ"
+                            Language.TELUGU -> "అడుగులు"
+                            Language.HINDI -> "फिट"
+                            else -> "ft"
+                        }
+                        val sqftUnit = when(currentLang) {
+                            Language.KANNADA -> "ಚದರ ಅಡಿ"
+                            Language.TELUGU -> "చదరపు అడుగులు"
+                            Language.HINDI -> "वर्ग फिट"
+                            else -> "sq.ft"
+                        }
                         Text(
-                            text = "Standard Dimensions",
+                            text = dimensionsTitle,
                             fontWeight = FontWeight.Bold,
                             color = WoodDark,
                             fontSize = 14.sp
@@ -338,19 +463,43 @@ fun CatalogScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column {
-                                Text("Length: ${design.estimatedWidth} ft", fontSize = 13.sp, color = WoodMedium, fontWeight = FontWeight.Medium)
-                                Text("Width: ${design.estimatedDepth} ft", fontSize = 13.sp, color = WoodMedium, fontWeight = FontWeight.Medium)
+                                Text("$lengthLabel: ${design.estimatedWidth} $ftUnit", fontSize = 13.sp, color = WoodMedium, fontWeight = FontWeight.Medium)
+                                Text("$widthLabel: ${design.estimatedDepth} $ftUnit", fontSize = 13.sp, color = WoodMedium, fontWeight = FontWeight.Medium)
                             }
                             Column {
-                                Text("Height: ${design.estimatedHeight} ft", fontSize = 13.sp, color = WoodMedium, fontWeight = FontWeight.Medium)
+                                Text("$heightLabel: ${design.estimatedHeight} $ftUnit", fontSize = 13.sp, color = WoodMedium, fontWeight = FontWeight.Medium)
                                 val area = design.estimatedWidth * design.estimatedDepth
-                                Text("Required Area: %.1f sq.ft".format(area), fontSize = 13.sp, color = WoodMedium, fontWeight = FontWeight.Medium)
+                                Text("$areaLabel: %.1f $sqftUnit".format(area), fontSize = 13.sp, color = WoodMedium, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                // Customizations Note Card
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Cream.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, WoodLight.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = TranslationHelper.getString("catalog_custom_title", currentLang),
+                            fontWeight = FontWeight.Bold,
+                            color = WoodDark,
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = TranslationHelper.getString("catalog_custom_note", currentLang),
+                            fontSize = 12.sp,
+                            color = WoodMedium,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Action buttons
                 Row(
@@ -369,7 +518,7 @@ fun CatalogScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = WoodMedium),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Calculate Materials", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(TranslationHelper.getString("catalog_btn_estimate", currentLang), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
 
                     Button(
@@ -384,7 +533,7 @@ fun CatalogScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = WoodDark),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Create Quote", color = Amber, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(TranslationHelper.getString("catalog_btn_quote", currentLang), color = Amber, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 }
                 Spacer(modifier = Modifier.height(20.dp))
@@ -398,6 +547,7 @@ fun CatalogScreen(
 fun DesignCard(
     design: FurnitureDesign,
     isFavourite: Boolean,
+    currentLang: Language,
     onFavouriteClick: () -> Unit,
     onCardClick: () -> Unit
 ) {
@@ -419,7 +569,7 @@ fun DesignCard(
                 if (design.imageRes != 0) {
                     GlideImage(
                         model = design.imageRes,
-                        contentDescription = design.name,
+                        contentDescription = TranslationHelper.getDesignName(design.id, currentLang),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -430,7 +580,25 @@ fun DesignCard(
                             .background(WoodMedium),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(design.category, color = Color.White,
+                        val categoryLabel = when(design.category) {
+                            "Bed" -> TranslationHelper.getString("catalog_filter_bed", currentLang)
+                            "Sofa" -> TranslationHelper.getString("catalog_filter_sofa", currentLang)
+                            "Cabinet" -> when(currentLang) {
+                                Language.KANNADA -> "ಕ್ಯಾಬಿನೆಟ್"
+                                Language.TELUGU -> "క్యాబినెట్"
+                                Language.HINDI -> "कैबिनेट"
+                                else -> "Cabinet"
+                            }
+                            "Wardrobe" -> TranslationHelper.getString("catalog_filter_wardrobe", currentLang)
+                            "Table" -> when(currentLang) {
+                                Language.KANNADA -> "ಮೇಜು"
+                                Language.TELUGU -> "బల్ల"
+                                Language.HINDI -> "मेज"
+                                else -> "Table"
+                            }
+                            else -> design.category
+                        }
+                        Text(categoryLabel, color = Color.White,
                             fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     }
                 }
@@ -451,7 +619,7 @@ fun DesignCard(
             // Details Info
             Column(modifier = Modifier.padding(10.dp)) {
                 Text(
-                    design.name,
+                    TranslationHelper.getDesignName(design.id, currentLang),
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     color = WoodDark,
@@ -459,8 +627,17 @@ fun DesignCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(3.dp))
+                val localizedWood = when(design.suggestedWood.lowercase()) {
+                    "teak" -> TranslationHelper.getString("wood_teak", currentLang)
+                    "sheesham" -> TranslationHelper.getString("wood_sheesham", currentLang)
+                    "plywood" -> TranslationHelper.getString("wood_plywood", currentLang)
+                    "mdf" -> TranslationHelper.getString("wood_mdf", currentLang)
+                    "rosewood" -> TranslationHelper.getString("wood_rosewood", currentLang)
+                    "mango" -> TranslationHelper.getString("wood_mango", currentLang)
+                    else -> design.suggestedWood
+                }
                 Text(
-                    design.suggestedWood,
+                    localizedWood,
                     fontSize = 12.sp,
                     color = WoodMedium,
                     fontWeight = FontWeight.SemiBold
@@ -472,8 +649,14 @@ fun DesignCard(
                         .border(1.dp, WoodLight, RoundedCornerShape(4.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
+                    val ftUnit = when(currentLang) {
+                        Language.KANNADA -> "ಅಡಿ"
+                        Language.TELUGU -> "అడుగులు"
+                        Language.HINDI -> "फिट"
+                        else -> "ft"
+                    }
                     Text(
-                        "${design.estimatedWidth}×${design.estimatedDepth} ft",
+                        "${design.estimatedWidth}×${design.estimatedDepth} $ftUnit",
                         fontSize = 10.sp,
                         color = WoodMedium,
                         fontWeight = FontWeight.Bold

@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +27,9 @@ import com.example.kashtakala.ui.catalog.WoodDark
 import com.example.kashtakala.ui.catalog.WoodLight
 import com.example.kashtakala.ui.catalog.WoodMedium
 import com.example.kashtakala.ui.SharedViewModel
+import com.example.kashtakala.ui.common.LanguageSelector
+import com.example.kashtakala.util.Language
+import com.example.kashtakala.util.TranslationHelper
 import com.example.kashtakala.util.WoodCalculator
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -40,6 +44,7 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
     val repo    = remember { QuoteRepository(db.quoteDao()) }
 
     val sharedDesign by sharedViewModel.selectedDesignForQuote.collectAsState()
+    val currentLang by sharedViewModel.selectedLanguage.collectAsState()
 
     var customerName  by remember { mutableStateOf("") }
     var designName    by remember { mutableStateOf("") }
@@ -65,7 +70,7 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
     // Pre-fill state when navigated from Catalog
     LaunchedEffect(sharedDesign) {
         sharedDesign?.let { design ->
-            designName = design.name
+            designName = TranslationHelper.getDesignName(design.id, currentLang)
             woodType = design.suggestedWood
             length = design.estimatedWidth.toString()
             width = design.estimatedDepth.toString()
@@ -101,11 +106,22 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                     .background(WoodDark)
                     .padding(16.dp)
             ) {
-                Column {
-                    Text("💰 Price Quote", color = Amber,
-                        fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Text("Generate & save customer quotes",
-                        color = WoodLight, fontSize = 13.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            TranslationHelper.getString("quote_title", currentLang),
+                            color = Amber, fontSize = 22.sp, fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            TranslationHelper.getString("quote_subtitle", currentLang),
+                            color = WoodLight, fontSize = 13.sp
+                        )
+                    }
+                    LanguageSelector(sharedViewModel = sharedViewModel)
                 }
             }
 
@@ -123,8 +139,20 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                         containerColor = if (!showSaved) WoodDark else Color.White
                     ),
                     shape = RoundedCornerShape(8.dp)
-                ) { Text("New Quote", color = if (!showSaved) Amber else WoodMedium, fontWeight = FontWeight.Bold) }
+                ) {
+                    Text(
+                        TranslationHelper.getString("quote_tab_new", currentLang),
+                        color = if (!showSaved) Amber else WoodMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
+                val savedTabLabel = when(currentLang) {
+                    Language.KANNADA -> "ಉಳಿಸಲಾಗಿದೆ (${savedQuotes.size})"
+                    Language.TELUGU -> "భద్రపరచబడినవి (${savedQuotes.size})"
+                    Language.HINDI -> "सहेजे गए (${savedQuotes.size})"
+                    else -> "Saved (${savedQuotes.size})"
+                }
                 Button(
                     onClick = { showSaved = true },
                     modifier = Modifier.weight(1f),
@@ -132,32 +160,60 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                         containerColor = if (showSaved) WoodDark else Color.White
                     ),
                     shape = RoundedCornerShape(8.dp)
-                ) { Text("Saved (${savedQuotes.size})", color = if (showSaved) Amber else WoodMedium, fontWeight = FontWeight.Bold) }
+                ) {
+                    Text(
+                        savedTabLabel,
+                        color = if (showSaved) Amber else WoodMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             if (!showSaved) {
                 // ── NEW QUOTE FORM ──────────────────────────────────
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
 
-                    QuoteCard(title = "Customer Details") {
-                        QuoteField("Customer Name", customerName) { customerName = it }
+                    QuoteCard(title = TranslationHelper.getString("quote_card_customer", currentLang)) {
+                        QuoteField(TranslationHelper.getString("quote_label_customer_name", currentLang), customerName) { customerName = it }
                         Spacer(Modifier.height(8.dp))
-                        QuoteField("Design / Item Name", designName) { designName = it }
+                        QuoteField(TranslationHelper.getString("quote_label_item_name", currentLang), designName) { designName = it }
                     }
 
                     Spacer(Modifier.height(12.dp))
 
-                    QuoteCard(title = "Dimensions & Wood") {
+                    val lLabel = when(currentLang) {
+                        Language.KANNADA -> "ಉದ್ದ (ಅಡಿ)"
+                        Language.TELUGU -> "పొడవు (అడుగులు)"
+                        Language.HINDI -> "लंबाई (फिट)"
+                        else -> "L (ft)"
+                    }
+                    val wLabel = when(currentLang) {
+                        Language.KANNADA -> "ಅಗಲ (ಅಡಿ)"
+                        Language.TELUGU -> "వెడల్పు (అడుగులు)"
+                        Language.HINDI -> "चौड़ाई (फिट)"
+                        else -> "W (ft)"
+                    }
+                    val hLabel = when(currentLang) {
+                        Language.KANNADA -> "ಎತ್ತರ (ಅಡಿ)"
+                        Language.TELUGU -> "ఎత్తు (అడుగులు)"
+                        Language.HINDI -> "ऊंचाई (फिट)"
+                        else -> "H (ft)"
+                    }
+
+                    QuoteCard(title = TranslationHelper.getString("quote_card_dimensions", currentLang)) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            QuoteField("L (ft)", length, Modifier.weight(1f), KeyboardType.Decimal) { length = it }
-                            QuoteField("W (ft)", width,  Modifier.weight(1f), KeyboardType.Decimal) { width  = it }
-                            QuoteField("H (ft)", height, Modifier.weight(1f), KeyboardType.Decimal) { height = it }
+                            QuoteField(lLabel, length, Modifier.weight(1f), KeyboardType.Decimal) { length = it }
+                            QuoteField(wLabel, width,  Modifier.weight(1f), KeyboardType.Decimal) { width  = it }
+                            QuoteField(hLabel, height, Modifier.weight(1f), KeyboardType.Decimal) { height = it }
                         }
                         Spacer(Modifier.height(12.dp))
-                        Text("Selected Wood Type", fontSize = 12.sp, color = WoodMedium, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            TranslationHelper.getString("quote_label_selected_wood", currentLang),
+                            fontSize = 12.sp, color = WoodMedium, fontWeight = FontWeight.SemiBold
+                        )
                         Spacer(Modifier.height(6.dp))
                         // Wood type chips
                         Row(
@@ -165,10 +221,19 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             WoodCalculator.woodTypes.forEach { w ->
+                                val localizedWood = when(w.lowercase()) {
+                                    "teak" -> TranslationHelper.getString("wood_teak", currentLang)
+                                    "sheesham" -> TranslationHelper.getString("wood_sheesham", currentLang)
+                                    "plywood" -> TranslationHelper.getString("wood_plywood", currentLang)
+                                    "mdf" -> TranslationHelper.getString("wood_mdf", currentLang)
+                                    "rosewood" -> TranslationHelper.getString("wood_rosewood", currentLang)
+                                    "mango" -> TranslationHelper.getString("wood_mango", currentLang)
+                                    else -> w
+                                }
                                 FilterChip(
                                     selected = woodType == w,
                                     onClick = { woodType = w },
-                                    label = { Text(w, fontSize = 11.sp) },
+                                    label = { Text(localizedWood, fontSize = 11.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = WoodDark,
                                         selectedLabelColor = Amber,
@@ -182,18 +247,18 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
 
                     Spacer(Modifier.height(12.dp))
 
-                    QuoteCard(title = "Cost Breakdown") {
-                        QuoteField("Labour Cost (₹)", labourCost, keyboardType = KeyboardType.Decimal) { labourCost = it }
+                    QuoteCard(title = TranslationHelper.getString("quote_card_cost", currentLang)) {
+                        QuoteField(TranslationHelper.getString("quote_label_labour", currentLang), labourCost, keyboardType = KeyboardType.Decimal) { labourCost = it }
                         Spacer(Modifier.height(8.dp))
-                        QuoteField("Overhead %", overheadPct, keyboardType = KeyboardType.Decimal) { overheadPct = it }
+                        QuoteField(TranslationHelper.getString("quote_label_overhead", currentLang), overheadPct, keyboardType = KeyboardType.Decimal) { overheadPct = it }
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = WoodLight)
                         Spacer(Modifier.height(8.dp))
-                        QuoteSummaryRow("Material Cost", "₹%,.0f".format(matCost))
-                        QuoteSummaryRow("Labour Cost",   "₹%,.0f".format(labour))
-                        QuoteSummaryRow("Overhead / Miscellaneous", "₹%,.0f".format((matCost + labour) * overhead / 100))
+                        QuoteSummaryRow(TranslationHelper.getString("quote_summary_material", currentLang), "₹%,.0f".format(matCost))
+                        QuoteSummaryRow(TranslationHelper.getString("quote_summary_labour", currentLang), "₹%,.0f".format(labour))
+                        QuoteSummaryRow(TranslationHelper.getString("quote_summary_overhead", currentLang), "₹%,.0f".format((matCost + labour) * overhead / 100))
                         HorizontalDivider(color = WoodLight, modifier = Modifier.padding(vertical = 6.dp))
-                        QuoteSummaryRow("TOTAL ESTIMATE", "₹%,.0f".format(total), bold = true)
+                        QuoteSummaryRow(TranslationHelper.getString("quote_summary_total", currentLang), "₹%,.0f".format(total), bold = true)
                     }
 
                     Spacer(Modifier.height(16.dp))
@@ -203,14 +268,27 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        val errName = when(currentLang) {
+                            Language.KANNADA -> "ದಯವಿಟ್ಟು ಗ್ರಾಹಕರ ಹೆಸರನ್ನು ನಮೂದಿಸಿ"
+                            Language.TELUGU -> "దయచేసి కస్టమర్ పేరు నమోదు చేయండి"
+                            Language.HINDI -> "कृपया ग्राहक का नाम दर्ज करें"
+                            else -> "Please enter customer name"
+                        }
+                        val errDim = when(currentLang) {
+                            Language.KANNADA -> "ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಅಳತೆಗಳನ್ನು ನಮೂದಿಸಿ"
+                            Language.TELUGU -> "దయచేసి సరైన కొలతలు నమోదు చేయండి"
+                            Language.HINDI -> "कृपया मान्य आयाम दर्ज करें"
+                            else -> "Please enter valid dimensions"
+                        }
+
                         Button(
                             onClick = {
                                 if (customerName.isBlank()) {
-                                    snackMsg = "Please enter customer name"
+                                    snackMsg = errName
                                     return@Button
                                 }
                                 if (area <= 0f) {
-                                    snackMsg = "Please enter valid dimensions"
+                                    snackMsg = errDim
                                     return@Button
                                 }
                                 val text = formatQuoteForSharing(
@@ -223,7 +301,8 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                                     matCost = matCost,
                                     labour = labour,
                                     overhead = overhead,
-                                    total = total
+                                    total = total,
+                                    lang = currentLang
                                 )
                                 shareQuoteText(context, text)
                             },
@@ -233,18 +312,21 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                             colors = ButtonDefaults.buttonColors(containerColor = WoodMedium),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("🔗 Share", fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(
+                                TranslationHelper.getString("quote_btn_share", currentLang),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold, color = Color.White
+                            )
                         }
 
                         Button(
                             onClick = {
                                 if (customerName.isBlank()) {
-                                    snackMsg = "Please enter customer name"
+                                    snackMsg = errName
                                     return@Button
                                 }
                                 if (area <= 0f) {
-                                    snackMsg = "Please enter valid dimensions"
+                                    snackMsg = errDim
                                     return@Button
                                 }
                                 scope.launch {
@@ -261,7 +343,13 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                                         overheadPercent = overhead,
                                         totalCost     = total
                                     ))
-                                    snackMsg    = "✅ Quote saved for $customerName!"
+                                    val successMsg = when(currentLang) {
+                                        Language.KANNADA -> "✅ $customerName ಗಾಗಿ ಕೋಟ್ ಉಳಿಸಲಾಗಿದೆ!"
+                                        Language.TELUGU -> "✅ $customerName కోసం కొటేషన్ భద్రపరచబడింది!"
+                                        Language.HINDI -> "✅ $customerName के लिए कोट सहेज लिया गया है!"
+                                        else -> "✅ Quote saved for $customerName!"
+                                    }
+                                    snackMsg    = successMsg
                                     customerName = ""; designName = ""
                                     length = ""; width = ""; height = ""
                                     labourCost = ""; overheadPct = "10"
@@ -273,8 +361,11 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                             colors = ButtonDefaults.buttonColors(containerColor = WoodDark),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("💾 Save", fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold, color = Amber)
+                            Text(
+                                TranslationHelper.getString("quote_btn_save", currentLang),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold, color = Amber
+                            )
                         }
                     }
 
@@ -290,9 +381,17 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                             .padding(40.dp),
                         contentAlignment = androidx.compose.ui.Alignment.Center
                     ) {
-                        Text("No saved quotes yet.\nCreate one in New Quote tab.",
+                        val noSavedText = when(currentLang) {
+                            Language.KANNADA -> "ಇನ್ನೂ ಯಾವುದೇ ಕೋಟ್‌ಗಳು ಉಳಿಸಿಲ್ಲ.\nಹೊಸ ಕೋಟ್ ಟ್ಯಾಬ್‌ನಲ್ಲಿ ಒಂದನ್ನು ರಚಿಸಿ."
+                            Language.TELUGU -> "ఇంకా కొటేషన్లు ఏవీ భద్రపరచలేదు.\nకొత్త కొటేషన్ ట్యాబ్‌లో ఒకదాన్ని సృష్టించండి."
+                            Language.HINDI -> "अभी तक कोई कोट सहेजा नहीं गया है।\nनया कोट टैब में एक बनाएं।"
+                            else -> "No saved quotes yet.\nCreate one in New Quote tab."
+                        }
+                        Text(
+                            noSavedText,
                             color = WoodMedium, fontSize = 14.sp,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
                     }
                 } else {
                     Column(
@@ -303,6 +402,7 @@ fun QuoteScreen(sharedViewModel: SharedViewModel) {
                             SavedQuoteCard(
                                 quote = quote,
                                 context = context,
+                                currentLang = currentLang,
                                 onDelete = {
                                     scope.launch {
                                         repo.delete(quote)
@@ -338,44 +438,209 @@ fun formatQuoteForSharing(
     matCost: Float,
     labour: Float,
     overhead: Float,
-    total: Float
+    total: Float,
+    lang: Language
 ): String {
+    val woodName = when(woodType.lowercase()) {
+        "teak" -> TranslationHelper.getString("wood_teak", lang)
+        "sheesham" -> TranslationHelper.getString("wood_sheesham", lang)
+        "plywood" -> TranslationHelper.getString("wood_plywood", lang)
+        "mdf" -> TranslationHelper.getString("wood_mdf", lang)
+        "rosewood" -> TranslationHelper.getString("wood_rosewood", lang)
+        "mango" -> TranslationHelper.getString("wood_mango", lang)
+        else -> woodType
+    }
+    val header = when(lang) {
+        Language.KANNADA -> "🪵 *ಕಷ್ಟ-ಕಲಾ ಬೆಲೆ ಕೋಟ್* 🪵"
+        Language.TELUGU -> "🪵 *కష్ట-కల ధర కొటేషన్* 🪵"
+        Language.HINDI -> "🪵 *कष्ट-कला मूल्य कोट* 🪵"
+        else -> "🪵 *KASHTA-KALA PRICE QUOTE* 🪵"
+    }
+    val custLabel = when(lang) {
+        Language.KANNADA -> "ಗ್ರಾಹಕರ ಹೆಸರು"
+        Language.TELUGU -> "కస్టమర్ పేరు"
+        Language.HINDI -> "ग्राहक का नाम"
+        else -> "Customer Name"
+    }
+    val itemLabel = when(lang) {
+        Language.KANNADA -> "ವಸ್ತು/ವಿನ್ಯಾಸ"
+        Language.TELUGU -> "వస్తువు/డిజైన్"
+        Language.HINDI -> "वस्तु/डिज़ाइन"
+        else -> "Item Name"
+    }
+    val woodLabel = when(lang) {
+        Language.KANNADA -> "ಮರದ ವಿಧ"
+        Language.TELUGU -> "కలప రకం"
+        Language.HINDI -> "लकड़ी का प्रकार"
+        else -> "Wood Type"
+    }
+    val dimLabel = when(lang) {
+        Language.KANNADA -> "ಅಳತೆಗಳು"
+        Language.TELUGU -> "కొలతలు"
+        Language.HINDI -> "आयाम"
+        else -> "Dimensions"
+    }
+    val costLabel = when(lang) {
+        Language.KANNADA -> "ವೆಚ್ಚದ ವಿವರ"
+        Language.TELUGU -> "ధర వివరాలు"
+        Language.HINDI -> "लागत विवरण"
+        else -> "Cost Breakdown"
+    }
+    val matLabel = when(lang) {
+        Language.KANNADA -> "ಮರ ಮತ್ತು ಸಾಮಗ್ರಿ ವೆಚ್ಚ"
+        Language.TELUGU -> "కలప & సామగ్రి ఖర్చు"
+        Language.HINDI -> "लकड़ी और सामग्री लागत"
+        else -> "Material Cost"
+    }
+    val labLabel = when(lang) {
+        Language.KANNADA -> "ಕೂಲಿ ವೆಚ್ಚ"
+        Language.TELUGU -> "కూలి ఖర్చు"
+        Language.HINDI -> "श्रम लागत"
+        else -> "Labour Cost"
+    }
+    val overLabel = when(lang) {
+        Language.KANNADA -> "ಇತರ ವೆಚ್ಚಗಳು"
+        Language.TELUGU -> "ఇతర ఖర్చులు"
+        Language.HINDI -> "अन्य व्यय"
+        else -> "Overhead / Misc"
+    }
+    val totLabel = when(lang) {
+        Language.KANNADA -> "ಒಟ್ಟು ಅಂದಾಜು"
+        Language.TELUGU -> "మొత్తం అంచనా"
+        Language.HINDI -> "कुल अनुमान"
+        else -> "ESTIMATED TOTAL"
+    }
+    val footer = when(lang) {
+        Language.KANNADA -> "_ಕಷ್ಟ-ಕಲಾ ಆಯ್ಕೆ ಮಾಡಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು!_"
+        Language.TELUGU -> "_కష్ట-కల ఎంచుకున్నందుకు ధన్యవాదాలు!_"
+        Language.HINDI -> "_कष्ट-कला चुनने के लिए धन्यवाद!_"
+        else -> "_Thank you for choosing Kashta-Kala!_"
+    }
+    val ftUnit = when(lang) {
+        Language.KANNADA -> "ಅಡಿ"
+        Language.TELUGU -> "అడుగులు"
+        Language.HINDI -> "फिट"
+        else -> "ft"
+    }
+
     return """
-        🪵 *KASHTA-KALA PRICE QUOTE* 🪵
+        $header
         ------------------------------------
-        *Customer Name:* $customerName
-        *Item Name:* $designName
-        *Wood Type:* $woodType
-        *Dimensions:* $length ft x $width ft x $height ft
+        *$custLabel:* $customerName
+        *$itemLabel:* $designName
+        *$woodLabel:* $woodName
+        *$dimLabel:* $length $ftUnit x $width $ftUnit x $height $ftUnit
         
-        *Cost Breakdown:*
-        - Material Cost: ₹${"%,.0f".format(matCost)}
-        - Labour Cost: ₹${"%,.0f".format(labour)}
-        - Overhead / Misc: ₹${"%,.0f".format((matCost + labour) * overhead / 100)}
+        *$costLabel:*
+        - $matLabel: ₹${"%,.0f".format(matCost)}
+        - $labLabel: ₹${"%,.0f".format(labour)}
+        - $overLabel: ₹${"%,.0f".format((matCost + labour) * overhead / 100)}
         ------------------------------------
-        *ESTIMATED TOTAL: ₹${"%,.0f".format(total)}*
+        *$totLabel: ₹${"%,.0f".format(total)}*
         
-        _Thank you for choosing Kashta-Kala!_
+        $footer
     """.trimIndent()
 }
 
-fun formatSavedQuoteForSharing(quote: SavedQuote): String {
+fun formatSavedQuoteForSharing(quote: SavedQuote, lang: Language): String {
+    val woodName = when(quote.woodType.lowercase()) {
+        "teak" -> TranslationHelper.getString("wood_teak", lang)
+        "sheesham" -> TranslationHelper.getString("wood_sheesham", lang)
+        "plywood" -> TranslationHelper.getString("wood_plywood", lang)
+        "mdf" -> TranslationHelper.getString("wood_mdf", lang)
+        "rosewood" -> TranslationHelper.getString("wood_rosewood", lang)
+        "mango" -> TranslationHelper.getString("wood_mango", lang)
+        else -> quote.woodType
+    }
+    val header = when(lang) {
+        Language.KANNADA -> "🪵 *ಕಷ್ಟ-ಕಲಾ ಬೆಲೆ ಕೋಟ್* 🪵"
+        Language.TELUGU -> "🪵 *కష్ట-కల ధర కొటేషన్* 🪵"
+        Language.HINDI -> "🪵 *कष्ट-कला मूल्य कोट* 🪵"
+        else -> "🪵 *KASHTA-KALA PRICE QUOTE* 🪵"
+    }
+    val custLabel = when(lang) {
+        Language.KANNADA -> "ಗ್ರಾಹಕರ ಹೆಸರು"
+        Language.TELUGU -> "కస్టమర్ పేరు"
+        Language.HINDI -> "ग्राहक का नाम"
+        else -> "Customer Name"
+    }
+    val itemLabel = when(lang) {
+        Language.KANNADA -> "ವಸ್ತು/ವಿನ್ಯಾಸ"
+        Language.TELUGU -> "వస్తువు/డిజైన్"
+        Language.HINDI -> "वस्तु/डिज़ाइन"
+        else -> "Item/Design"
+    }
+    val woodLabel = when(lang) {
+        Language.KANNADA -> "ಮರದ ವಿಧ"
+        Language.TELUGU -> "కలప రకం"
+        Language.HINDI -> "लकड़ी का प्रकार"
+        else -> "Wood Type"
+    }
+    val dimLabel = when(lang) {
+        Language.KANNADA -> "ಅಳತೆಗಳು"
+        Language.TELUGU -> "కొలతలు"
+        Language.HINDI -> "आयाम"
+        else -> "Dimensions"
+    }
+    val costLabel = when(lang) {
+        Language.KANNADA -> "ವೆಚ್ಚದ ವಿವರ"
+        Language.TELUGU -> "ధర వివరాలు"
+        Language.HINDI -> "लागत विवरण"
+        else -> "Cost Breakdown"
+    }
+    val matLabel = when(lang) {
+        Language.KANNADA -> "ಮರ ಮತ್ತು ಸಾಮಗ್ರಿ ವೆಚ್ಚ"
+        Language.TELUGU -> "కలప & సామగ్రి ఖర్చు"
+        Language.HINDI -> "लकड़ी और सामग्री लागत"
+        else -> "Material Cost"
+    }
+    val labLabel = when(lang) {
+        Language.KANNADA -> "ಕೂಲಿ ವೆಚ್ಚ"
+        Language.TELUGU -> "కూలి ఖర్చు"
+        Language.HINDI -> "श्रम लागत"
+        else -> "Labour Cost"
+    }
+    val overLabel = when(lang) {
+        Language.KANNADA -> "ಇತರ ವೆಚ್ಚಗಳು"
+        Language.TELUGU -> "ఇతర ఖర్చులు"
+        Language.HINDI -> "अन्य व्यय"
+        else -> "Overhead / Misc"
+    }
+    val totLabel = when(lang) {
+        Language.KANNADA -> "ಒಟ್ಟು ಅಂದಾಜು"
+        Language.TELUGU -> "మొత్తం అంచనా"
+        Language.HINDI -> "कुल अनुमान"
+        else -> "ESTIMATED TOTAL"
+    }
+    val footer = when(lang) {
+        Language.KANNADA -> "_ಕಷ್ಟ-ಕಲಾ ಆಯ್ಕೆ ಮಾಡಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು!_"
+        Language.TELUGU -> "_కష్ట-కల ఎంచుకున్నందుకు ధన్యవాదాలు!_"
+        Language.HINDI -> "_कष्ट-कला चुनने के लिए धन्यवाद!_"
+        else -> "_Thank you for choosing Kashta-Kala!_"
+    }
+    val ftUnit = when(lang) {
+        Language.KANNADA -> "ಅಡಿ"
+        Language.TELUGU -> "అడుగులు"
+        Language.HINDI -> "फिट"
+        else -> "ft"
+    }
+
     return """
-        🪵 *KASHTA-KALA PRICE QUOTE* 🪵
+        $header
         ------------------------------------
-        *Customer Name:* ${quote.customerName}
-        *Item/Design:* ${quote.designName}
-        *Wood Type:* ${quote.woodType}
-        *Dimensions:* ${quote.lengthFt} ft x ${quote.widthFt} ft x ${quote.heightFt} ft
+        *$custLabel:* ${quote.customerName}
+        *$itemLabel:* ${quote.designName}
+        *$woodLabel:* $woodName
+        *$dimLabel:* ${quote.lengthFt} $ftUnit x ${quote.widthFt} $ftUnit x ${quote.heightFt} $ftUnit
         
-        *Cost Breakdown:*
-        - Material Cost: ₹${"%,.0f".format(quote.materialCost)}
-        - Labour Cost: ₹${"%,.0f".format(quote.labourCost)}
-        - Overhead / Misc: ₹${"%,.0f".format((quote.materialCost + quote.labourCost) * quote.overheadPercent / 100)}
+        *$costLabel:*
+        - $matLabel: ₹${"%,.0f".format(quote.materialCost)}
+        - $labLabel: ₹${"%,.0f".format(quote.labourCost)}
+        - $overLabel: ₹${"%,.0f".format((quote.materialCost + quote.labourCost) * quote.overheadPercent / 100)}
         ------------------------------------
-        *ESTIMATED TOTAL: ₹${"%,.0f".format(quote.totalCost)}*
+        *$totLabel: ₹${"%,.0f".format(quote.totalCost)}*
         
-        _Thank you for choosing Kashta-Kala!_
+        $footer
     """.trimIndent()
 }
 
@@ -412,8 +677,8 @@ fun QuoteField(
             focusedBorderColor = WoodMedium,
             unfocusedBorderColor = WoodLight,
             focusedLabelColor = WoodMedium,
-            focusedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
-            unfocusedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
+            focusedTextColor = WoodDark,
+            unfocusedTextColor = WoodDark
         )
     )
 }
@@ -434,7 +699,7 @@ fun QuoteSummaryRow(label: String, value: String, bold: Boolean = false) {
 }
 
 @Composable
-fun SavedQuoteCard(quote: SavedQuote, context: Context, onDelete: () -> Unit) {
+fun SavedQuoteCard(quote: SavedQuote, context: Context, currentLang: Language, onDelete: () -> Unit) {
     val date = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
         .format(Date(quote.dateCreated))
     Card(
@@ -454,9 +719,24 @@ fun SavedQuoteCard(quote: SavedQuote, context: Context, onDelete: () -> Unit) {
                     fontWeight = FontWeight.Bold, color = Amber, fontSize = 15.sp)
             }
             Spacer(Modifier.height(4.dp))
-            Text("${quote.designName} · ${quote.woodType}",
+            val localizedWood = when(quote.woodType.lowercase()) {
+                "teak" -> TranslationHelper.getString("wood_teak", currentLang)
+                "sheesham" -> TranslationHelper.getString("wood_sheesham", currentLang)
+                "plywood" -> TranslationHelper.getString("wood_plywood", currentLang)
+                "mdf" -> TranslationHelper.getString("wood_mdf", currentLang)
+                "rosewood" -> TranslationHelper.getString("wood_rosewood", currentLang)
+                "mango" -> TranslationHelper.getString("wood_mango", currentLang)
+                else -> quote.woodType
+            }
+            Text("${quote.designName} · $localizedWood",
                 color = WoodMedium, fontSize = 12.sp)
-            Text("${quote.lengthFt}×${quote.widthFt}×${quote.heightFt} ft · $date",
+            val ftUnit = when(currentLang) {
+                Language.KANNADA -> "ಅಡಿ"
+                Language.TELUGU -> "అడుగులు"
+                Language.HINDI -> "फिट"
+                else -> "ft"
+            }
+            Text("${quote.lengthFt}×${quote.widthFt}×${quote.heightFt} $ftUnit · $date",
                 color = WoodLight, fontSize = 11.sp)
             Spacer(Modifier.height(8.dp))
             
@@ -466,16 +746,29 @@ fun SavedQuoteCard(quote: SavedQuote, context: Context, onDelete: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                val shareLabel = when(currentLang) {
+                    Language.KANNADA -> "ಕೋಟ್ ಹಂಚಿಕೊಳ್ಳಿ"
+                    Language.TELUGU -> "కొటేషన్ షేర్ చేయండి"
+                    Language.HINDI -> "कोट साझा करें"
+                    else -> "Share Quote"
+                }
+                val deleteLabel = when(currentLang) {
+                    Language.KANNADA -> "ಅಳಿಸಿ"
+                    Language.TELUGU -> "తొలగించు"
+                    Language.HINDI -> "हटाएं"
+                    else -> "Delete"
+                }
+
                 TextButton(
                     onClick = {
-                        val text = formatSavedQuoteForSharing(quote)
+                        val text = formatSavedQuoteForSharing(quote, currentLang)
                         shareQuoteText(context, text)
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = WoodMedium
                     )
                 ) {
-                    Text("🔗 Share Quote", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(shareLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
 
                 TextButton(
@@ -484,7 +777,7 @@ fun SavedQuoteCard(quote: SavedQuote, context: Context, onDelete: () -> Unit) {
                         contentColor = Color.Red
                     )
                 ) {
-                    Text("🗑 Delete", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(deleteLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

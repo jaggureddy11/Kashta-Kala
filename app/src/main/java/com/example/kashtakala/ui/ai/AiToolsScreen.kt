@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -48,25 +51,43 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kashtakala.ai.GeminiClient
 import com.example.kashtakala.ui.catalog.Amber
+import com.example.kashtakala.ui.SharedViewModel
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.CoroutineScope
+import androidx.compose.ui.text.input.ImeAction
 import com.example.kashtakala.ui.catalog.Cream
 import com.example.kashtakala.ui.catalog.WoodDark
 import com.example.kashtakala.ui.catalog.WoodLight
 import com.example.kashtakala.ui.catalog.WoodMedium
+import com.example.kashtakala.ui.common.LanguageSelector
+import com.example.kashtakala.util.Language
+import com.example.kashtakala.util.TranslationHelper
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-private enum class AiTool(val label: String, val action: String) {
-    Design("Design Guidance", "Create Design Plan"),
-    Material("Material Recommendation", "Recommend Wood"),
-    Negotiation("Price Negotiation", "Create Strategy"),
-    Quote("Quote Description", "Write Description")
+private enum class AiTool(val labelKey: String, val actionKey: String) {
+    Design("ai_task_design", "ai_btn_action_design"),
+    Material("ai_task_material", "ai_btn_action_material"),
+    Negotiation("ai_task_negotiation", "ai_btn_action_negotiation"),
+    Quote("ai_task_quote", "ai_btn_action_quote"),
+    Chat("ai_task_chat", "ai_btn_action_chat")
 }
 
 @Composable
-fun AiToolsScreen() {
+fun AiToolsScreen(sharedViewModel: SharedViewModel) {
     val scope = rememberCoroutineScope()
     val geminiClient = remember { GeminiClient() }
     val context = LocalContext.current
+    val currentLang by sharedViewModel.selectedLanguage.collectAsState()
 
     var selectedTool by remember { mutableStateOf(AiTool.Design) }
     var roomDimensions by remember { mutableStateOf("5x4 feet bedroom") }
@@ -86,235 +107,573 @@ fun AiToolsScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Cream)
-            .verticalScroll(rememberScrollState())
     ) {
+        // Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(WoodDark)
                 .padding(16.dp)
         ) {
-            Column {
-                Text(
-                    "Gemini AI Workshop",
-                    color = Amber,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Build guidance, material advice, pricing and quote writing",
-                    color = WoodLight,
-                    fontSize = 13.sp
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        TranslationHelper.getString("ai_title", currentLang),
+                        color = Amber,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        TranslationHelper.getString("ai_subtitle", currentLang),
+                        color = WoodLight,
+                        fontSize = 13.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                LanguageSelector(sharedViewModel = sharedViewModel)
             }
         }
 
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(4.dp),
-                shape = RoundedCornerShape(12.dp)
+        if (selectedTool == AiTool.Chat) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "Choose AI task",
-                        color = WoodDark,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        AiTool.entries.chunked(2).forEach { rowTools ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                rowTools.forEach { tool ->
-                                    FilterChip(
-                                        selected = selectedTool == tool,
-                                        onClick = {
-                                            selectedTool = tool
-                                            result = ""
-                                            error = null
-                                        },
-                                        label = { Text(tool.label, fontSize = 11.sp) },
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = WoodDark,
-                                            selectedLabelColor = Amber,
-                                            containerColor = Cream,
-                                            labelColor = WoodDark
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(4.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        inputTitle(selectedTool),
-                        color = WoodDark,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    when (selectedTool) {
-                        AiTool.Design -> {
-                            AiField("Room dimensions", roomDimensions) { roomDimensions = it }
-                            AiField("Style preference", stylePreference) { stylePreference = it }
-                            AiField("Budget (Rs)", budget, KeyboardType.Number) { budget = it }
-                        }
-                        AiTool.Material -> {
-                            AiField("Budget (Rs)", budget, KeyboardType.Number) { budget = it }
-                            AiField("Durability need", durabilityNeed) { durabilityNeed = it }
-                            AiField("Aesthetic preference", stylePreference) { stylePreference = it }
-                        }
-                        AiTool.Negotiation -> {
-                            AiField("Region", region) { region = it }
-                            AiField("Customer profile", customerProfile) { customerProfile = it }
-                            AiField("Project and quoted price", quoteDetails) { quoteDetails = it }
-                        }
-                        AiTool.Quote -> {
-                            AiField("Technical quote details", quoteDetails) { quoteDetails = it }
-                            AiField("Customer style preference", stylePreference) { stylePreference = it }
-                        }
-                    }
-                    Button(
-                        onClick = {
-                            isLoading = true
-                            error = null
-                            result = ""
-                            scope.launch {
-                                val reliableSuggestion = buildOfflineFallback(
-                                    selectedTool,
-                                    roomDimensions,
-                                    stylePreference,
-                                    budget,
-                                    durabilityNeed,
-                                    region,
-                                    customerProfile,
-                                    quoteDetails
-                                )
-                                val prompt = buildPrompt(
-                                    selectedTool,
-                                    roomDimensions,
-                                    stylePreference,
-                                    budget,
-                                    durabilityNeed,
-                                    region,
-                                    customerProfile,
-                                    quoteDetails
-                                )
-                                geminiClient.generate(prompt)
-                                    .onSuccess {
-                                        result = if (isUsefulSuggestion(selectedTool, it)) {
-                                            it
-                                        } else {
-                                            reliableSuggestion
-                                        }
-                                    }
-                                    .onFailure {
-                                        result = reliableSuggestion
-                                        error = null
-                                    }
-                                isLoading = false
-                            }
-                        },
-                        enabled = !isLoading,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WoodDark),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = Amber,
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.height(22.dp)
-                            )
-                        } else {
-                            Text(
-                                selectedTool.action,
-                                color = Amber,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-
-            error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-            }
-
-            if (result.isNotBlank()) {
+                // Card with Chips
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(4.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, WoodLight)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "💡 AI Recommendation",
-                                color = WoodDark,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                TextButton(
-                                    onClick = {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("AI Advice", result)
-                                        clipboard.setPrimaryClip(clip)
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            TranslationHelper.getString("ai_choose_task", currentLang),
+                            color = WoodDark,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            AiTool.entries.chunked(2).forEach { rowTools ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    rowTools.forEach { tool ->
+                                        FilterChip(
+                                            selected = selectedTool == tool,
+                                            onClick = {
+                                                selectedTool = tool
+                                                result = ""
+                                                error = null
+                                            },
+                                            label = { Text(TranslationHelper.getString(tool.labelKey, currentLang), fontSize = 11.sp) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = WoodDark,
+                                                selectedLabelColor = Amber,
+                                                containerColor = Cream,
+                                                labelColor = WoodDark
+                                            )
+                                        )
                                     }
-                                ) {
-                                    Text("📋 Copy", fontSize = 12.sp, color = WoodMedium, fontWeight = FontWeight.Bold)
-                                }
-                                TextButton(
-                                    onClick = {
-                                        val sendIntent = Intent().apply {
-                                            action = Intent.ACTION_SEND
-                                            putExtra(Intent.EXTRA_TEXT, result)
-                                            type = "text/plain"
-                                        }
-                                        val shareIntent = Intent.createChooser(sendIntent, "Share advice via")
-                                        context.startActivity(shareIntent)
-                                    }
-                                ) {
-                                    Text("🔗 Share", fontSize = 12.sp, color = WoodMedium, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
-                        Spacer(Modifier.height(10.dp))
+                    }
+                }
+
+                // AI Chat Card holding history and input
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    AiChatInterface(sharedViewModel, geminiClient, scope, currentLang)
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = result,
+                            TranslationHelper.getString("ai_choose_task", currentLang),
                             color = WoodDark,
-                            fontSize = 13.sp,
-                            lineHeight = 20.sp,
-                            fontWeight = FontWeight.Normal
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            AiTool.entries.chunked(2).forEach { rowTools ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    rowTools.forEach { tool ->
+                                        FilterChip(
+                                            selected = selectedTool == tool,
+                                            onClick = {
+                                                selectedTool = tool
+                                                result = ""
+                                                error = null
+                                            },
+                                            label = { Text(TranslationHelper.getString(tool.labelKey, currentLang), fontSize = 11.sp) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = WoodDark,
+                                                selectedLabelColor = Amber,
+                                                containerColor = Cream,
+                                                labelColor = WoodDark
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            inputTitle(selectedTool, currentLang),
+                            color = WoodDark,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        when (selectedTool) {
+                            AiTool.Design -> {
+                                AiField(TranslationHelper.getString("ai_input_room", currentLang), roomDimensions) { roomDimensions = it }
+                                AiField(TranslationHelper.getString("ai_input_style", currentLang), stylePreference) { stylePreference = it }
+                                AiField(TranslationHelper.getString("ai_input_budget", currentLang), budget, KeyboardType.Number) { budget = it }
+                            }
+                            AiTool.Material -> {
+                                AiField(TranslationHelper.getString("ai_input_budget", currentLang), budget, KeyboardType.Number) { budget = it }
+                                AiField(TranslationHelper.getString("ai_input_durability", currentLang), durabilityNeed) { durabilityNeed = it }
+                                AiField(TranslationHelper.getString("ai_input_style", currentLang), stylePreference) { stylePreference = it }
+                            }
+                            AiTool.Negotiation -> {
+                                AiField(TranslationHelper.getString("ai_input_region", currentLang), region) { region = it }
+                                AiField(TranslationHelper.getString("ai_input_customer", currentLang), customerProfile) { customerProfile = it }
+                                val projectAndQuotedPriceLabel = when(currentLang) {
+                                    Language.KANNADA -> "ಯೋಜನೆ ಮತ್ತು ಕೋಟ್ ಮಾಡಿದ ಬೆಲೆ"
+                                    Language.TELUGU -> "ప్రాజెక్ట్ మరియు కోట్ చేసిన ధర"
+                                    Language.HINDI -> "परियोजना और उद्धृत मूल्य"
+                                    else -> "Project and quoted price"
+                                }
+                                AiField(projectAndQuotedPriceLabel, quoteDetails) { quoteDetails = it }
+                            }
+                            AiTool.Quote -> {
+                                AiField(TranslationHelper.getString("ai_input_quote", currentLang), quoteDetails) { quoteDetails = it }
+                                val customerStylePrefLabel = when(currentLang) {
+                                    Language.KANNADA -> "ಗ್ರಾಹಕರ ಶೈಲಿಯ ಆದ್ಯತೆ"
+                                    Language.TELUGU -> "కస్టమర్ శైలి ప్రాధాన్యత"
+                                    Language.HINDI -> "ग्राहक शैली प्राथमिकता"
+                                    else -> "Customer style preference"
+                                }
+                                AiField(customerStylePrefLabel, stylePreference) { stylePreference = it }
+                            }
+                            else -> {}
+                        }
+                        Button(
+                            onClick = {
+                                isLoading = true
+                                error = null
+                                result = ""
+                                scope.launch {
+                                    val reliableSuggestion = buildOfflineFallback(
+                                        selectedTool,
+                                        roomDimensions,
+                                        stylePreference,
+                                        budget,
+                                        durabilityNeed,
+                                        region,
+                                        customerProfile,
+                                        quoteDetails
+                                    )
+                                    val prompt = buildPrompt(
+                                        selectedTool,
+                                        roomDimensions,
+                                        stylePreference,
+                                        budget,
+                                        durabilityNeed,
+                                        region,
+                                        customerProfile,
+                                        quoteDetails
+                                    )
+                                    geminiClient.generate(prompt)
+                                        .onSuccess {
+                                            result = if (isUsefulSuggestion(selectedTool, it)) {
+                                                it
+                                            } else {
+                                                reliableSuggestion
+                                            }
+                                        }
+                                        .onFailure {
+                                            result = reliableSuggestion
+                                            error = null
+                                        }
+                                    isLoading = false
+                                }
+                            },
+                            enabled = !isLoading,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = WoodDark),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    color = Amber,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.height(22.dp)
+                                )
+                            } else {
+                                Text(
+                                    TranslationHelper.getString(selectedTool.actionKey, currentLang),
+                                    color = Amber,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+
+                error?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
+
+                if (result.isNotBlank()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, WoodLight)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    TranslationHelper.getString("ai_recommendation_title", currentLang),
+                                    color = WoodDark,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    TextButton(
+                                        onClick = {
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                            val clip = ClipData.newPlainText("AI Advice", result)
+                                            clipboard.setPrimaryClip(clip)
+                                        }
+                                    ) {
+                                        Text(
+                                            TranslationHelper.getString("ai_btn_copy", currentLang),
+                                            fontSize = 12.sp, color = WoodMedium, fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    TextButton(
+                                        onClick = {
+                                            val sendIntent = Intent().apply {
+                                                action = Intent.ACTION_SEND
+                                                putExtra(Intent.EXTRA_TEXT, result)
+                                                type = "text/plain"
+                                            }
+                                            val shareIntent = Intent.createChooser(sendIntent, "Share advice via")
+                                            context.startActivity(shareIntent)
+                                        }
+                                    ) {
+                                        Text(
+                                            TranslationHelper.getString("ai_btn_share", currentLang),
+                                            fontSize = 12.sp, color = WoodMedium, fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = result,
+                                color = WoodDark,
+                                fontSize = 13.sp,
+                                lineHeight = 20.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiChatInterface(
+    sharedViewModel: SharedViewModel,
+    geminiClient: GeminiClient,
+    scope: CoroutineScope,
+    lang: Language
+) {
+    val messages by sharedViewModel.chatMessages.collectAsState()
+    var inputText by remember { mutableStateOf("") }
+    var isSending by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
+    val chatAssistantLabel = when(lang) {
+        Language.KANNADA -> "ಕಾರ್ಪೆಂಟ್ರಿ ಸಹಾಯಕ"
+        Language.TELUGU -> "కార్పెంట్రీ సహాయకుడు"
+        Language.HINDI -> "बढ़ईगीरी सहायक"
+        else -> "Carpentry Assistant"
+    }
+
+    val clearChatDesc = when(lang) {
+        Language.KANNADA -> "ಚಾಟ್ ತೆರವುಗೊಳಿಸಿ"
+        Language.TELUGU -> "చాట్ క్లియర్ చేయి"
+        Language.HINDI -> "चैट साफ करें"
+        else -> "Clear Chat"
+    }
+
+    val aiThinkingLabel = when(lang) {
+        Language.KANNADA -> "AI ಯೋಚಿಸುತ್ತಿದೆ..."
+        Language.TELUGU -> "AI ఆలోచిస్తోంది..."
+        Language.HINDI -> "AI सोच रहा है..."
+        else -> "AI is thinking..."
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(WoodLight.copy(alpha = 0.2f))
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                chatAssistantLabel,
+                color = WoodDark,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
+            )
+            IconButton(
+                onClick = { sharedViewModel.clearChat() },
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = clearChatDesc,
+                    tint = WoodMedium
+                )
+            }
+        }
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(messages) { message ->
+                ChatBubble(message)
+            }
+            if (isSending) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        CircularProgressIndicator(
+                            color = WoodMedium,
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            aiThinkingLabel,
+                            fontSize = 12.sp,
+                            color = WoodMedium,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                         )
                     }
                 }
             }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = inputText,
+                onValueChange = { inputText = it },
+                placeholder = { Text(TranslationHelper.getString("ai_chat_placeholder", lang), fontSize = 13.sp) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                    onSend = {
+                        if (inputText.isNotBlank() && !isSending) {
+                            sendChat(inputText, sharedViewModel, geminiClient, scope, lang) {
+                                isSending = it
+                            }
+                            inputText = ""
+                        }
+                    }
+                ),
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = WoodMedium,
+                    unfocusedBorderColor = WoodLight,
+                    focusedTextColor = WoodDark,
+                    unfocusedTextColor = WoodDark,
+                    cursorColor = WoodDark
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            IconButton(
+                onClick = {
+                    if (inputText.isNotBlank() && !isSending) {
+                        sendChat(inputText, sharedViewModel, geminiClient, scope, lang) {
+                            isSending = it
+                        }
+                        inputText = ""
+                    }
+                },
+                enabled = inputText.isNotBlank() && !isSending
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Send,
+                    contentDescription = TranslationHelper.getString("ai_btn_send", lang),
+                    tint = if (inputText.isNotBlank() && !isSending) WoodDark else WoodLight
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatBubble(message: com.example.kashtakala.data.ChatMessage) {
+    val isUser = message.sender == "user"
+    val alignment = if (isUser) Alignment.End else Alignment.Start
+    val bg = if (isUser) WoodDark else Cream
+    val textColors = if (isUser) Color.White else WoodDark
+    val corners = if (isUser) {
+        RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 12.dp, bottomEnd = 0.dp)
+    } else {
+        RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 12.dp)
+    }
+    val border = if (isUser) null else BorderStroke(1.dp, WoodLight.copy(alpha = 0.5f))
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalAlignment = alignment
+    ) {
+        Card(
+            shape = corners,
+            colors = CardDefaults.cardColors(containerColor = bg),
+            border = border,
+            modifier = Modifier.widthIn(max = 280.dp),
+            elevation = CardDefaults.cardElevation(1.dp)
+        ) {
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = message.text,
+                    color = textColors,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+            }
+        }
+    }
+}
+
+private fun sendChat(
+    text: String,
+    sharedViewModel: SharedViewModel,
+    geminiClient: GeminiClient,
+    scope: CoroutineScope,
+    lang: Language,
+    setSending: (Boolean) -> Unit
+) {
+    setSending(true)
+    sharedViewModel.addChatMessage("user", text)
+    
+    val systemInstruction = """
+        You are the Kashta-Kala AI assistant, a dedicated mentor for Indian carpenters and users of the Kashta-Kala app.
+        Your expertise is strictly limited to carpentry, woodworking, furniture building, wood types (like teak, sheesham, plywood, MDF), measurements, joinery, and the Kashta-Kala application features (such as Catalog, Estimator, Quotes, and Portfolio).
+        
+        CRITICAL RULE: You must refuse to discuss any topic unrelated to carpentry, woodworking, furniture, or the Kashta-Kala app.
+        If the user asks an off-topic question (e.g. politics, coding, science, sports, cooking, history, general chit-chat not related to carpentry), politely decline and state that you are programmed to discuss only carpentry, woodworking, and the Kashta-Kala application.
+        
+        Keep responses practical, concise, and structured in a friendly, helpful workshop-style tone. Use Indian Rupees (₹) for pricing discussions.
+    """.trimIndent()
+
+    scope.launch {
+        val history = sharedViewModel.chatMessages.value.map { msg ->
+            msg.sender to msg.text
+        }
+
+        val result = geminiClient.chat(history, systemInstruction)
+        result.onSuccess { reply ->
+            sharedViewModel.addChatMessage("model", reply)
+            setSending(false)
+        }.onFailure { err ->
+            val fallback = if (err.message?.contains("GEMINI_API_KEY") == true) {
+                when(lang) {
+                    Language.KANNADA -> "ಚಾಟ್ ಅನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಲು gradle.properties ಅಥವಾ local.properties ಗೆ ಮಾನ್ಯವಾದ GEMINI_API_KEY ಅನ್ನು ಸೇರಿಸಿ. ಆಫ್‌ಲೈನ್ ಬ್ಯಾಕಪ್: ಮೇಲಿನ ಇತರ AI ಪರಿಕರಗಳ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡುವ ಮೂಲಕ ನೀವು ಮರದ ವೆಚ್ಚವನ್ನು ಅಂದಾಜು ಮಾಡಲು ಅಥವಾ ಕಾರ್ಪೆಂಟ್ರಿ ಕೋಟ್‌ಗಳನ್ನು ಸಿದ್ಧಪಡಿಸಲು ಸಹಾಯ ಪಡೆಯಬಹುದು!"
+                    Language.TELUGU -> "చాట్‌ని ప్రారంభించడానికి gradle.properties లేదా local.properties కి సరైన GEMINI_API_KEYని జోడించండి. ఆఫ్‌లైన్ బ్యాకప్: పైన ఉన్న ఇతర AI టూల్స్ పై క్లిక్ చేయడం ద్వారా మీరు కలప ధరను అంచనా వేయడానికి లేదా ఆర్టీసియల్ కోట్‌లను సిద్ధం చేయడానికి సహాయం పొందవచ్చు!"
+                    Language.HINDI -> "चैट सक्षम करने के लिए gradle.properties या local.properties में एक मान्य GEMINI_API_KEY जोड़ें। ऑफ़लाइन बैकअप: ऊपर दिए गए अन्य AI टूल पर क्लिक करके आप लकड़ी की लागत का अनुमान लगाने या बढ़ईगीरी कोट तैयार करने में सहायता प्राप्त कर सकते हैं!"
+                    else -> "Add a valid GEMINI_API_KEY to gradle.properties or local.properties to enable chat. Offline fallback: I can help you estimate wood or draft carpentry quotes if you click on the other AI tools above!"
+                }
+            } else {
+                when(lang) {
+                    Language.KANNADA -> "ನನಗೆ ಸಂಪರ್ಕಿಸಲು ತೊಂದರೆಯಾಗುತ್ತಿದೆ. ದಯವಿಟ್ಟು ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ. ಆಫ್‌ಲೈನ್ ಸಲಹೆ: ಬಾಳಿಕೆ ಬರುವ ಹೊರಾಂಗಣ ಪೀಠೋಪಕರಣಗಳಿಗಾಗಿ ತೇಗದ ಮರವನ್ನು ಶಿಫಾರಸು ಮಾಡಲಾಗುತ್ತದೆ, ಆದರೆ ಒಳಾಂಗಣ ಹಾಸಿಗೆಗಳು ಮತ್ತು ಕ್ಯಾಬಿನೆಟ್‌ಗಳಿಗೆ ಶೀಶಮ್ ಅತ್ಯುತ್ತಮವಾಗಿದೆ."
+                    Language.TELUGU -> "నాకు కనెక్ట్ కావడంలో ఇబ్బందిగా ఉంది. దయచేసి ఇంటర్నెట్ కనెక్షన్‌ని తనిఖీ చేయండి. ఆఫ్‌లైన్ సలహా: మన్నికైన అవుట్‌డోర్ ఫర్నిచర్ కోసం టేకు కలపను సిఫార్సు చేస్తారు, అయితే ఇండోర్ బెడ్‌లు మరియు క్యాబినెట్‌ల కోసం శీశం కలప చాలా బాగుంటుంది."
+                    Language.HINDI -> "मुझे कनेक्ट होने में परेशानी हो रही है। कृपया इंटरनेट कनेक्शन की जांच करें। ऑफ़लाइन सुझाव: टिकाऊ बाहरी फर्नीचर के लिए सागौन की लकड़ी की सिफारिश की जाती है, जबकि इनडोर बेड और अलमारियाँ के लिए शीशम उत्कृष्ट है।"
+                    else -> "I am having trouble connecting right now. Please verify your internet connection. Offline suggestion: Teak wood (Sagan) is generally recommended for durable outdoor furniture, whereas Sheesham is excellent for indoor beds and cabinets."
+                }
+            }
+            sharedViewModel.addChatMessage("model", fallback)
+            setSending(false)
         }
     }
 }
@@ -342,17 +701,38 @@ private fun AiField(
             focusedBorderColor = WoodMedium,
             unfocusedBorderColor = WoodLight,
             focusedLabelColor = WoodMedium,
-            focusedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
-            unfocusedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
+            focusedTextColor = WoodDark,
+            unfocusedTextColor = WoodDark
         )
     )
 }
 
-private fun inputTitle(tool: AiTool): String = when (tool) {
-    AiTool.Design -> "Room and style"
-    AiTool.Material -> "Wood selection needs"
-    AiTool.Negotiation -> "Pricing context"
-    AiTool.Quote -> "Quote details"
+private fun inputTitle(tool: AiTool, lang: Language): String = when (tool) {
+    AiTool.Design -> when(lang) {
+        Language.KANNADA -> "ಕೊಠಡಿ ಮತ್ತು ಶೈಲಿ"
+        Language.TELUGU -> "గది మరియు శైలి"
+        Language.HINDI -> "कमरा और शैली"
+        else -> "Room and style"
+    }
+    AiTool.Material -> when(lang) {
+        Language.KANNADA -> "ಮರದ ಆಯ್ಕೆಯ ಅಗತ್ಯಗಳು"
+        Language.TELUGU -> "కలప ఎంపిక అవసరాలు"
+        Language.HINDI -> "लकड़ी चयन की आवश्यकताएं"
+        else -> "Wood selection needs"
+    }
+    AiTool.Negotiation -> when(lang) {
+        Language.KANNADA -> "ಬೆಲೆ ಸಂದರ್ಭ"
+        Language.TELUGU -> "ధర సందర్భం"
+        Language.HINDI -> "मूल्य निर्धारण संदर्भ"
+        else -> "Pricing context"
+    }
+    AiTool.Quote -> when(lang) {
+        Language.KANNADA -> "ಕೋಟ್ ವಿವರಗಳು"
+        Language.TELUGU -> "కొటేషన్ వివరాలు"
+        Language.HINDI -> "कोटेशन विवरण"
+        else -> "Quote details"
+    }
+    else -> ""
 }
 
 private fun buildPrompt(
@@ -412,6 +792,7 @@ private fun buildPrompt(
             Customer style preference: $stylePreference
             Return a polished paragraph, included scope, value highlights and optional upgrade line.
         """.trimIndent()
+        else -> ""
     }
 }
 
@@ -429,6 +810,7 @@ private fun buildOfflineFallback(
     AiTool.Material -> offlineMaterialPlan(budget, durabilityNeed, stylePreference)
     AiTool.Negotiation -> offlineNegotiationPlan(region, customerProfile, quoteDetails)
     AiTool.Quote -> offlineQuoteDescription(quoteDetails, stylePreference)
+    else -> ""
 }
 
 private fun isUsefulSuggestion(tool: AiTool, text: String): Boolean {
@@ -441,6 +823,7 @@ private fun isUsefulSuggestion(tool: AiTool, text: String): Boolean {
         AiTool.Material -> listOf("teak", "plywood", "recommend").all { it in normalized }
         AiTool.Negotiation -> listOf("price", "customer", "discount").all { it in normalized }
         AiTool.Quote -> listOf("scope", "finish", "installation").any { it in normalized }
+        else -> false
     }
 }
 
@@ -658,4 +1041,3 @@ private fun sizeCategory(roomText: String): String = when {
     else ->
         "custom room size, so first measure the longest usable wall, door swing and window position before final cutting."
 }
-
